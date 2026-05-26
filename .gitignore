@@ -34,4 +34,4 @@ yarn-error.log*
 Thumbs.db
 
 # Generated Prisma Client
-app/src/generated/prisma
+src/generated/
