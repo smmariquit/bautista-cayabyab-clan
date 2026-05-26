@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { hashPassword } from "../src/lib/auth";
 
 const db = new Database("dev.db");
-db.pragma("journal_mode = WAL");
+db.pragma("journal_mode = DELETE");
 
 function cuid(): string {
   return randomBytes(16).toString("hex").slice(0, 25);
