@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { randomBytes } from "crypto";
+import { hashPassword } from "../src/lib/auth";
 
 const db = new Database("dev.db");
 db.pragma("journal_mode = WAL");
@@ -14,6 +15,7 @@ console.log("🌱 Seeding family tree database...");
 db.exec("DELETE FROM ParentChild");
 db.exec("DELETE FROM Partnership");
 db.exec("DELETE FROM Person");
+db.exec("DELETE FROM User");
 
 interface PersonRow {
   id: string;
@@ -177,6 +179,19 @@ addChildren(["1.3.6", "1.3.6.s"], ["1.3.6.1", "1.3.6.2", "1.3.6.3", "1.3.6.4"]);
 addChildren(["1.3.7", "1.3.7.s"], ["1.3.7.1", "1.3.7.2"]);
 
 console.log("  ✅ Parent-child relationships created");
+
+// ── SEED INITIAL USER ──
+const adminUsername = process.env.ADMIN_USERNAME || "admin";
+const adminPassword = process.env.ADMIN_PASSWORD || "clanpassword123";
+const hashedPassword = hashPassword(adminPassword);
+
+const insertUser = db.prepare(`
+  INSERT INTO User (id, username, password, role, createdAt, updatedAt)
+  VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+`);
+insertUser.run(cuid(), adminUsername, hashedPassword, "admin");
+console.log(`  ✅ Editor user seeded: username='${adminUsername}', password='${adminPassword}'`);
+
 console.log("\n🌳 Seeding complete!");
 
 db.close();
