@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3", "@prisma/adapter-better-sqlite3"]
+  serverExternalPackages: ["better-sqlite3", "@prisma/adapter-better-sqlite3"],
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./dev.db"]
+  }
 };
 
 export default nextConfig;

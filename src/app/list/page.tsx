@@ -15,16 +15,22 @@ export default function ListPage() {
   const [search, setSearch] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<TreePerson | null>(null);
   const [showPreface, setShowPreface] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchPeople = () => {
     fetch("/api/tree")
       .then((r) => r.json())
       .then((data: TreePerson[]) => {
         setPeople(data);
+        setLoading(false);
         if (selectedPerson) {
           const updated = data.find((p) => p.id === selectedPerson.id);
           if (updated) setSelectedPerson(updated);
         }
+      })
+      .catch((err) => {
+        console.error("Error fetching people list:", err);
+        setLoading(false);
       });
   };
 
@@ -157,11 +163,24 @@ export default function ListPage() {
     );
   };
 
-  if (people.length === 0) {
+  if (loading) {
     return (
       <div className="loading">
         <div className="loading-spinner" />
         <div className="loading-text">Loading clan members list…</div>
+      </div>
+    );
+  }
+
+  if (people.length === 0) {
+    return (
+      <div className="loading">
+        <div className="loading-text" style={{ fontSize: "1.2rem", opacity: 0.8 }}>
+          No family members found in database.
+        </div>
+        <p style={{ fontSize: "0.9rem", color: "var(--color-text-muted)", marginTop: "0.5rem" }}>
+          Please verify that the database is properly seeded on the server.
+        </p>
       </div>
     );
   }
