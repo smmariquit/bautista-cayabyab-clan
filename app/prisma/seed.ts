@@ -100,6 +100,8 @@ addPerson("1.6", "Teodorico", "Cayabyab", { nicknames: "Ikoy", gender: "M", gene
 addPerson("1.7", "Esperita", "Cayabyab", { nicknames: "Itay", gender: "F", generation: 2 });
 addPerson("1.7.s", "Enrique", "Reyes", { gender: "M", generation: 2 });
 addPerson("1.8", "Crispino", "Cayabyab", { nicknames: "Pinoy", gender: "M", generation: 2, occupation: "Collector of bets of small town lottery" });
+addPerson("1.9", "Siti", "Cayabyab", { gender: "M", generation: 2 });
+addPerson("1.9.s", "Pacita", "Montemayor", { gender: "F", generation: 2 });
 
 // ── GENERATION 3: Children of Pastora & Domingo ──
 addPerson("1.3.1", "Perfecto", "Bautista", { nicknames: "Peling", gender: "M", generation: 3, occupation: "Medical Doctor, Governor", bio: "Governor of Sultan Kudarat province for 3 years, died in the 80s" });
@@ -116,6 +118,11 @@ addPerson("1.3.6", "Salvador", "Bautista", { nicknames: "Ador,Buddy", gender: "M
 addPerson("1.3.6.s", "Yolanda", "Vaño", { nicknames: "Yoly", gender: "F", generation: 3 });
 addPerson("1.3.7", "Teodora", "Bautista", { nicknames: "Doray", gender: "F", generation: 3 });
 addPerson("1.3.7.s", "Caruso", "Dequina", { gender: "M", generation: 3 });
+addPerson("1.1.1", "Angel", "Cayabyab", { nicknames: "Gil", gender: "M", generation: 3 });
+addPerson("1.1.2", "Caridad", "Cayabyab", { nicknames: "Caring", gender: "F", generation: 3 });
+addPerson("1.9.1", "Susan", "Cayabyab", { gender: "F", generation: 3 });
+addPerson("1.9.2", "Antonio", "Cayabyab", { gender: "M", generation: 3 });
+addPerson("1.9.3", "Dolores", "Cayabyab", { gender: "F", generation: 3 });
 
 // ── GENERATION 4: Grandchildren ──
 addPerson("1.3.1.1", "Gwendolyn", "Bautista", { nicknames: "Gingging", gender: "F", generation: 4 });
@@ -148,7 +155,7 @@ const partnerPairs = [
   ["1.3.1", "1.3.1.s"], ["1.3.2", "1.3.2.s"], ["1.3.3", "1.3.3.s"],
   ["1.3.4", "1.3.4.s"], ["1.3.5", "1.3.5.s"], ["1.3.6", "1.3.6.s"],
   ["1.3.7", "1.3.7.s"], ["1.3.2.1", "1.3.2.1.s"], ["1.3.2.3", "1.3.2.3.s"],
-  ["1.3.3.1", "1.3.3.1.s"], ["1.3.3.2", "1.3.3.2.s"],
+  ["1.3.3.1", "1.3.3.1.s"], ["1.3.3.2", "1.3.3.2.s"], ["1.9", "1.9.s"],
 ];
 
 for (const [c1, c2] of partnerPairs) {
@@ -168,7 +175,7 @@ function addChildren(parentCodes: string[], childCodes: string[]) {
 }
 
 addChildren(["0.1", "0.2"], ["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
-addChildren(["1", "1.s"], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8"]);
+addChildren(["1", "1.s"], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9"]);
 addChildren(["1.3", "1.3.s"], ["1.3.1", "1.3.2", "1.3.3", "1.3.4", "1.3.5", "1.3.6", "1.3.7"]);
 addChildren(["1.3.1", "1.3.1.s"], ["1.3.1.1"]);
 addChildren(["1.3.2", "1.3.2.s"], ["1.3.2.1", "1.3.2.3"]);
@@ -177,6 +184,8 @@ addChildren(["1.3.4", "1.3.4.s"], ["1.3.4.1", "1.3.4.2", "1.3.4.3", "1.3.4.4", "
 addChildren(["1.3.5", "1.3.5.s"], ["1.3.5.1", "1.3.5.2"]);
 addChildren(["1.3.6", "1.3.6.s"], ["1.3.6.1", "1.3.6.2", "1.3.6.3", "1.3.6.4"]);
 addChildren(["1.3.7", "1.3.7.s"], ["1.3.7.1", "1.3.7.2"]);
+addChildren(["1.1", "1.1.s"], ["1.1.1", "1.1.2"]);
+addChildren(["1.9", "1.9.s"], ["1.9.1", "1.9.2", "1.9.3"]);
 
 console.log("  ✅ Parent-child relationships created");
 
