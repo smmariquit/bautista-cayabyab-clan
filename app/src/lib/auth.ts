@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { cookies } from "next-headers"; // Wait, in Next.js App Router we can import cookies from 'next/headers'
+import { cookies } from "next/headers"; // In Next.js App Router we import cookies from 'next/headers'
 
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-family-tree-key-change-this-in-prod-12345";
 

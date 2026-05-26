@@ -26,7 +26,7 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
   const svgRef = useRef<SVGSVGElement>(null);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<TreePerson[]>([]);
-  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown>>();
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
 
   // Search filtering

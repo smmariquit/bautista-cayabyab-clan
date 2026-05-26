@@ -3,6 +3,7 @@ export interface TreePerson {
   firstName: string;
   lastName: string;
   nicknames: string | null;
+  suffix: string | null;
   gender: string | null;
   generation: number;
   lineageCode: string | null;
