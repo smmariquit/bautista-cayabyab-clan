@@ -5,6 +5,7 @@ import * as d3 from "d3";
 import type { TreePerson } from "@/lib/types";
 
 interface FamilyTreeProps {
+  people: TreePerson[];
   onSelectPerson: (person: TreePerson) => void;
 }
 
@@ -21,18 +22,12 @@ const H_GAP = 60; // Horizontal gap between adjacent couples/nodes
 const V_GAP = 100;
 const LAYOUT_W = (2 * NODE_W + PARTNER_GAP) + H_GAP;
 
-export default function FamilyTree({ onSelectPerson }: FamilyTreeProps) {
+export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [people, setPeople] = useState<TreePerson[]>([]);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<TreePerson[]>([]);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown>>();
 
-  useEffect(() => {
-    fetch("/api/tree")
-      .then((r) => r.json())
-      .then((data: TreePerson[]) => setPeople(data));
-  }, []);
 
   // Search filtering
   useEffect(() => {
