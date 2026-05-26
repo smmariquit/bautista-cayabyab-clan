@@ -1,0 +1,86 @@
+// Family Tree Database Schema
+// Models the Domingo Bautista-Pastora Cayabyab Clan genealogy
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Person {
+  id        String   @id @default(cuid())
+  
+  // Core identity
+  firstName  String
+  lastName   String
+  nicknames  String?   // Comma-separated nicknames, e.g. "Peling,Pete"
+  suffix     String?   // Jr., III, etc.
+  
+  // Genealogy numbering (from the document, e.g. "1.8.1")
+  lineageCode String?  @unique
+  
+  // Life details
+  gender      String?  // "M" or "F"
+  birthDate   String?  // ISO date or partial like "1940"
+  deathDate   String?  // ISO date or partial, null if alive
+  birthPlace  String?
+  deathPlace  String?
+  
+  // Professional / biographical
+  occupation  String?  // Could be multiple, separated by commas
+  education   String?
+  bio         String?  // Free-form biographical text / footnotes
+  
+  // Photo
+  photoUrl    String?  // Path to uploaded photo
+  
+  // Generation tracking
+  generation  Int      @default(0)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  // Parent-child: a person can have parents and children
+  parentOf    ParentChild[] @relation("ParentRelation")
+  childOf     ParentChild[] @relation("ChildRelation")
+  
+  // Partnerships (marriages, live-in, etc.)
+  partnerships1 Partnership[] @relation("Partner1")
+  partnerships2 Partnership[] @relation("Partner2")
+}
+
+model ParentChild {
+  id       String @id @default(cuid())
+  
+  parentId String
+  childId  String
+  
+  parent   Person @relation("ParentRelation", fields: [parentId], references: [id], onDelete: Cascade)
+  child    Person @relation("ChildRelation", fields: [childId], references: [id], onDelete: Cascade)
+  
+  @@unique([parentId, childId])
+}
+
+model Partnership {
+  id       String @id @default(cuid())
+  
+  partner1Id String
+  partner2Id String
+  
+  // "married", "livein", "divorced", "companion"
+  type       String  @default("married")
+  
+  // Optional marriage/partnership details
+  date       String?
+  notes      String?
+  
+  partner1   Person @relation("Partner1", fields: [partner1Id], references: [id], onDelete: Cascade)
+  partner2   Person @relation("Partner2", fields: [partner2Id], references: [id], onDelete: Cascade)
+  
+  @@unique([partner1Id, partner2Id])
+}
