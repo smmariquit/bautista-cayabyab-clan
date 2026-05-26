@@ -39,11 +39,31 @@ We wanted an interface that felt like a premium digital heirloom—sleek, modern
 4. **First-Gen Completeness**:
    - Added all 9 children of Roberto Gundayao and Anacleta Junio (**Florentina, Genoveva, Leonila, Marcela, Mariano, Marcelino, Rufina, Placido, and Victorina Gundayao**) to keep the tree accurate to source genealogy.
    - Added lineage code badges (like `1.s` for spouses) to all cards.
-
----
-
-## 🔮 Next Features in the Queue
-
-1. **Authentication**: Secure write-access for clan editors.
-2. **Edit Features**: Inline detail modifications, spouse/child additions, and photo uploads.
-3. **List View**: A search-optimized list layout resembling the initial transcribed lineage document.
+43: 
+44: ---
+45: 
+46: ## 🚀 Session 2 Accomplishments: Editor Auth, Detail Profiles, & List View
+47: 
+48: 1. **Secure Admin Authentication**:
+49:    - Created a user credential database schema using PBKDF2 native password hashing and verification.
+50:    - Implemented secure HMAC-SHA256 session token signatures written to client-side HttpOnly, Secure cookies.
+51:    - Protected modify/delete API routes (`PATCH`, `POST`, `DELETE`) with session checking.
+52: 2. **Profile Editor**:
+53:    - Added a modern floating form within the `PersonDetail` panel allowing logged-in editors to modify first/last names, nicknames, suffixes, birth/death dates, gender, and biography notes.
+54:    - Built state synchronization between the edit drawer and the D3 tree visualization, triggering an immediate update without reloading the page.
+55: 3. **Indented List View**:
+56:    - Created a recursive List view at `/list` mirroring the original indented genealogy document.
+57:    - Added instant client-side full-text search across names, nicknames, lineage codes, and occupations.
+58:    - Integrated the profile detail drawer navigation inside the list view.
+59: 4. **Atomic Git History**:
+60:    - Configured `.gitignore` for local SQLite databases.
+61:    - Committed all architectural shifts, API protections, and layout updates in atomic, descriptive commits on the `main` branch.
+62: 
+63: ---
+64: 
+65: ## 🔮 Future Roadmap
+66: 
+67: 1. **Interactive Node Additions**: Let authenticated editors insert children or spouses directly on the canvas.
+68: 2. **Media/Photo Upload Manager**: Build an image upload route to persist profile pictures on the server.
+69: 3. **Change History Auditing**: Track editor activity to inspect family tree modifications over time.
+70: 
