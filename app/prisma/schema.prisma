@@ -84,3 +84,13 @@ model Partnership {
   
   @@unique([partner1Id, partner2Id])
 }
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // Hashed password (salt + hash)
+  role      String   @default("editor")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
