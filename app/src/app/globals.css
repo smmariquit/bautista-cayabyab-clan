@@ -1135,4 +1135,108 @@ body {
   border: 1px dashed var(--color-border);
 }
 
+/* Preface / Introduction card styling */
+.preface-toggle {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-accent);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  margin-top: 12px;
+}
 
+.preface-toggle:hover {
+  background: var(--color-accent-glow);
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.preface-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 800px;
+  margin: 20px auto 0;
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn var(--transition-base) forwards;
+}
+
+.preface-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preface-date {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.preface-contributors {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.preface-p {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.preface-quote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 16px;
+  margin: 16px 0;
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.preface-quote cite {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.preface-note-section {
+  border-top: 1px dashed var(--color-border-subtle);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+
+.preface-note-title {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--color-accent-light);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

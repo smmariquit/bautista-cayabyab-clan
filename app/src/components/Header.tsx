@@ -50,7 +50,7 @@ export default function Header() {
             </svg>
             <div>
               <div className="header-title">Our Lineage</div>
-              <div className="header-subtitle">Bautista–Cayabyab Clan</div>
+              <div className="header-subtitle">Bautista–Cayabyab Clan · As of 12-10-24</div>
             </div>
           </a>
 
