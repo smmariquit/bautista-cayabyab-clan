@@ -1,3 +1,5 @@
+// src/lib/types.ts
+
 export interface TreePerson {
   id: string;
   firstName: string;

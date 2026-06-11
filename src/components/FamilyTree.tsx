@@ -1,3 +1,5 @@
+// src/components/FamilyTree.tsx
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -16,11 +18,12 @@ interface HierarchyNode {
 }
 
 const NODE_W = 180;
-const NODE_H = 56;
-const PARTNER_GAP = 20;
-const H_GAP = 60; // Horizontal gap between adjacent couples/nodes
-const V_GAP = 100;
-const LAYOUT_W = (2 * NODE_W + PARTNER_GAP) + H_GAP;
+const NODE_H = 48;
+const PARTNER_GAP = 6;
+const H_GAP = 30; // Gap between siblings (horizontal)
+const V_GAP = 60; // Gap between generations (vertical)
+const LAYOUT_DX = NODE_W + H_GAP;
+const LAYOUT_DY = (NODE_H * 2) + PARTNER_GAP + V_GAP;
 
 export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -108,7 +111,7 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
     if (!hierarchy) return;
 
     const root = d3.hierarchy(hierarchy, (d) => d.children);
-    const treeLayout = d3.tree<HierarchyNode>().nodeSize([LAYOUT_W, NODE_H + V_GAP]);
+    const treeLayout = d3.tree<HierarchyNode>().nodeSize([LAYOUT_DX, LAYOUT_DY]);
     treeLayout(root);
 
     const svgSel = d3.select(svg);
@@ -128,9 +131,10 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
 
     // Center the tree
     const bounds = svg.getBoundingClientRect();
+    // Start with root at top-left with some margin
     const initialTransform = d3.zoomIdentity
-      .translate(bounds.width / 2, 80)
-      .scale(0.65);
+      .translate(bounds.width / 2, 100)
+      .scale(0.8);
     svgSel.call(zoom.transform, initialTransform);
 
     // Draw links
@@ -140,12 +144,13 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
       .join("path")
       .attr("class", "tree-link")
       .attr("d", (d) => {
+        // d.x is horizontal, d.y is vertical
         const sx = d.source.x!;
-        const sy = d.source.y! + NODE_H / 2;
+        const sy = d.source.y! + (d.source.data.partner ? NODE_H * 1.5 + PARTNER_GAP : NODE_H / 2); // exit from bottom of couple
         const tx = d.target.x!;
-        const ty = d.target.y! - NODE_H / 2;
+        const ty = d.target.y! - NODE_H / 2; // enter at top of child
         const my = (sy + ty) / 2;
-        return `M${sx},${sy} C${sx},${my} ${tx},${my} ${tx},${ty}`;
+        return `M${sx},${sy} V${my} H${tx} V${ty}`;
       });
 
     // Draw node groups
@@ -161,8 +166,9 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
         return `tree-node ${gen === "M" ? "tree-node-male" : gen === "F" ? "tree-node-female" : ""}`;
       })
       .attr("transform", (d) => {
-        const xOffset = d.data.partner ? PARTNER_GAP / 2 : -NODE_W / 2;
-        return `translate(${d.x! + xOffset},${d.y! - NODE_H / 2})`;
+        // Stack main person on top
+        const yOffset = d.data.partner ? -(NODE_H + PARTNER_GAP / 2) : -NODE_H / 2;
+        return `translate(${d.x! - NODE_W / 2},${d.y! + yOffset})`;
       })
       .on("click", (_, d) => onSelectPerson(d.data.person));
 
@@ -173,17 +179,19 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
 
     personNodes.append("rect")
       .attr("width", 3)
-      .attr("height", NODE_H - 16)
+      .attr("height", NODE_H - 12)
       .attr("x", 6)
-      .attr("y", 8)
+      .attr("y", 6)
       .attr("rx", 2)
       .attr("fill", (d) => d.data.person.gender === "M" ? "var(--color-male)" : d.data.person.gender === "F" ? "var(--color-female)" : "var(--color-text-muted)")
       .attr("opacity", 0.6);
 
     personNodes.append("text")
       .attr("class", "tree-node-name")
-      .attr("x", 18)
+      .attr("x", 16)
       .attr("y", 22)
+      .attr("font-size", "16px")
+      .attr("font-weight", "700")
       .text((d) => {
         const p = d.data.person;
         const name = `${p.firstName} ${p.lastName}`;
@@ -192,8 +200,9 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
 
     personNodes.append("text")
       .attr("class", "tree-node-info")
-      .attr("x", 18)
+      .attr("x", 16)
       .attr("y", 38)
+      .attr("font-size", "11px")
       .text((d) => {
         const p = d.data.person;
         if (p.nicknames) return `"${p.nicknames.split(",")[0]}"`;
@@ -217,7 +226,7 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
         const gen = d.data.partner!.gender;
         return `tree-node ${gen === "M" ? "tree-node-male" : gen === "F" ? "tree-node-female" : ""}`;
       })
-      .attr("transform", (d) => `translate(${d.x! - PARTNER_GAP / 2 - NODE_W},${d.y! - NODE_H / 2})`)
+      .attr("transform", (d) => `translate(${d.x! - NODE_W / 2},${d.y! + PARTNER_GAP / 2})`)
       .on("click", (_, d) => onSelectPerson(d.data.partner!));
 
     partnerNodes.append("rect")
@@ -227,17 +236,19 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
 
     partnerNodes.append("rect")
       .attr("width", 3)
-      .attr("height", NODE_H - 16)
+      .attr("height", NODE_H - 12)
       .attr("x", 6)
-      .attr("y", 8)
+      .attr("y", 6)
       .attr("rx", 2)
       .attr("fill", (d) => d.data.partner!.gender === "M" ? "var(--color-male)" : d.data.partner!.gender === "F" ? "var(--color-female)" : "var(--color-text-muted)")
       .attr("opacity", 0.6);
 
     partnerNodes.append("text")
       .attr("class", "tree-node-name")
-      .attr("x", 18)
+      .attr("x", 16)
       .attr("y", 22)
+      .attr("font-size", "16px")
+      .attr("font-weight", "700")
       .text((d) => {
         const p = d.data.partner!;
         const name = `${p.firstName} ${p.lastName}`;
@@ -246,8 +257,9 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
 
     partnerNodes.append("text")
       .attr("class", "tree-node-info")
-      .attr("x", 18)
+      .attr("x", 16)
       .attr("y", 38)
+      .attr("font-size", "11px")
       .text((d) => {
         const p = d.data.partner!;
         if (p.nicknames) return `"${p.nicknames.split(",")[0]}"`;
@@ -269,10 +281,10 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
     nodeGroups.filter((d) => !!d.data.partner)
       .append("line")
       .attr("class", "tree-partner-link")
-      .attr("x1", (d) => d.x! - PARTNER_GAP / 2)
-      .attr("y1", (d) => d.y!)
-      .attr("x2", (d) => d.x! + PARTNER_GAP / 2)
-      .attr("y2", (d) => d.y!);
+      .attr("x1", (d) => d.x!)
+      .attr("y1", (d) => d.y! - PARTNER_GAP / 2)
+      .attr("x2", (d) => d.x!)
+      .attr("y2", (d) => d.y! + PARTNER_GAP / 2);
   }, [people, buildHierarchy, onSelectPerson]);
 
   const handleZoom = (direction: "in" | "out" | "reset") => {
@@ -285,9 +297,30 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
       const bounds = svg.getBoundingClientRect();
       sel.transition().call(
         zoomRef.current.transform,
-        d3.zoomIdentity.translate(bounds.width / 2, 80).scale(0.65)
+        d3.zoomIdentity.translate(bounds.width / 2, 100).scale(0.8)
       );
     }
+  };
+
+  const handlePrint = () => {
+    const svg = svgRef.current;
+    if (svg && zoomRef.current) {
+      // Find bounding box of the g.tree-root
+      const g = svg.querySelector("g.tree-root") as SVGGElement;
+      if (g) {
+        const bbox = g.getBBox();
+        // Scale to 1 and center horizontally
+        const bounds = svg.getBoundingClientRect();
+        d3.select(svg).call(
+          zoomRef.current.transform,
+          d3.zoomIdentity.translate(-bbox.x + bounds.width / 2 - bbox.width / 2, -bbox.y + 50).scale(1)
+        );
+      }
+    }
+    // Small timeout to allow transform to apply
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   const focusOnPerson = (person: TreePerson) => {
@@ -356,6 +389,7 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
         <button onClick={() => handleZoom("in")} title="Zoom in">+</button>
         <button onClick={() => handleZoom("out")} title="Zoom out">−</button>
         <button onClick={() => handleZoom("reset")} title="Reset view">⟲</button>
+        <button onClick={handlePrint} title="Print tree">🖨️</button>
       </div>
 
       {/* Stats */}

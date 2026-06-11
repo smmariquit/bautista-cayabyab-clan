@@ -1,3 +1,5 @@
+// src/components/PersonDetail.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";

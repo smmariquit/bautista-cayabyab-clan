@@ -1,3 +1,5 @@
+// src/lib/auth.ts
+
 import crypto from "crypto";
 import { cookies } from "next/headers"; // In Next.js App Router we import cookies from 'next/headers'
 

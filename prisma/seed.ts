@@ -1,3 +1,5 @@
+// prisma/seed.ts
+
 import Database from "better-sqlite3";
 import { randomBytes } from "crypto";
 import { hashPassword } from "../src/lib/auth";
