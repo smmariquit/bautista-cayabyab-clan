@@ -2,8 +2,9 @@
 // Models the Domingo Bautista-Pastora Cayabyab Clan genealogy
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../src/generated/prisma"
+  runtime  = "cloudflare"
 }
 
 datasource db {
@@ -93,4 +94,3 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-

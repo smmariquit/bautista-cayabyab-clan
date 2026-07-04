@@ -1,28 +1,27 @@
 // src/lib/prisma.ts
 
-import { PrismaClient } from "@/generated/prisma";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
+import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaD1 } from "@prisma/adapter-d1";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+type CloudflareContext = {
+  env: {
+    DB: unknown;
+  };
 };
 
-let prismaInstance: PrismaClient;
-
-if (globalForPrisma.prisma) {
-  prismaInstance = globalForPrisma.prisma;
-} else {
-  const dbPath = path.resolve(process.cwd(), "dev.db");
-  const adapter = new PrismaBetterSqlite3({
-    url: `file:${dbPath}`,
-  });
-  
-  prismaInstance = new PrismaClient({ adapter } as any);
-  
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prismaInstance;
-  }
+export function createPrismaClient() {
+  const { env } = getCloudflareContext() as unknown as CloudflareContext;
+  const adapter = new PrismaD1(env.DB as never);
+  return new PrismaClient({ adapter });
 }
 
-export const prisma = prismaInstance;
+export async function withPrisma<T>(handler: (prisma: PrismaClient) => Promise<T>) {
+  const prisma = createPrismaClient();
+
+  try {
+    return await handler(prisma);
+  } finally {
+    await prisma.$disconnect();
+  }
+}

@@ -2,11 +2,12 @@
 
 import type { NextConfig } from "next";
 
+if (process.env.NODE_ENV !== "production") {
+  import("@opennextjs/cloudflare").then((mod) => mod.initOpenNextCloudflareForDev());
+}
+
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3", "@prisma/adapter-better-sqlite3"],
-  outputFileTracingIncludes: {
-    "/api/**/*": ["./dev.db"]
-  }
+  output: "standalone",
 };
 
 export default nextConfig;

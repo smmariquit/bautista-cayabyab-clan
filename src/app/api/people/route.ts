@@ -1,21 +1,25 @@
 // src/app/api/people/route.ts
 
-import { prisma } from "@/lib/prisma";
+import { withPrisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 import { cookies } from "next/headers";
 import { verifySession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  const people = await prisma.person.findMany({
-    include: {
-      parentOf: { select: { childId: true } },
-      childOf: { select: { parentId: true } },
-      partnerships1: { select: { partner2Id: true, type: true } },
-      partnerships2: { select: { partner1Id: true, type: true } },
-    },
-    orderBy: [{ generation: "asc" }, { lineageCode: "asc" }],
-  });
+  const people = await withPrisma((prisma) =>
+    prisma.person.findMany({
+      include: {
+        parentOf: { select: { childId: true } },
+        childOf: { select: { parentId: true } },
+        partnerships1: { select: { partner2Id: true, type: true } },
+        partnerships2: { select: { partner1Id: true, type: true } },
+      },
+      orderBy: [{ generation: "asc" }, { lineageCode: "asc" }],
+    })
+  );
 
   return NextResponse.json(people);
 }
@@ -29,11 +33,10 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const person = await prisma.person.create({ data: body });
+    const person = await withPrisma((prisma) => prisma.person.create({ data: body }));
     return NextResponse.json(person, { status: 201 });
   } catch (error) {
     console.error("POST person error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-

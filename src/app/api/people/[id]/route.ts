@@ -1,32 +1,36 @@
 // src/app/api/people/[id]/route.ts
 
-import { prisma } from "@/lib/prisma";
+import { withPrisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifySession } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const person = await prisma.person.findUnique({
-    where: { id },
-    include: {
-      parentOf: {
-        include: { child: true },
+  const person = await withPrisma((prisma) =>
+    prisma.person.findUnique({
+      where: { id },
+      include: {
+        parentOf: {
+          include: { child: true },
+        },
+        childOf: {
+          include: { parent: true },
+        },
+        partnerships1: {
+          include: { partner2: true },
+        },
+        partnerships2: {
+          include: { partner1: true },
+        },
       },
-      childOf: {
-        include: { parent: true },
-      },
-      partnerships1: {
-        include: { partner2: true },
-      },
-      partnerships2: {
-        include: { partner1: true },
-      },
-    },
-  });
+    })
+  );
 
   if (!person) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -48,7 +52,9 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const person = await prisma.person.update({ where: { id }, data: body });
+    const person = await withPrisma((prisma) =>
+      prisma.person.update({ where: { id }, data: body })
+    );
     return NextResponse.json(person);
   } catch (error) {
     console.error("PATCH person error:", error);
@@ -68,11 +74,10 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    await prisma.person.delete({ where: { id } });
+    await withPrisma((prisma) => prisma.person.delete({ where: { id } }));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("DELETE person error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-

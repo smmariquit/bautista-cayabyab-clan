@@ -1,8 +1,10 @@
 // src/app/api/auth/login/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { withPrisma } from "@/lib/prisma";
 import { verifyPassword, signSession } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,9 +17,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
-    });
+    const user = await withPrisma((prisma) =>
+      prisma.user.findUnique({
+        where: { username },
+      })
+    );
 
     if (!user || !verifyPassword(password, user.password)) {
       return NextResponse.json(
