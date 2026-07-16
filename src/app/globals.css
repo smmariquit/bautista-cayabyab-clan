@@ -140,7 +140,7 @@ body {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .header-nav a:hover,
@@ -187,7 +187,7 @@ body {
   fill: var(--color-node-bg);
   stroke: var(--color-border);
   stroke-width: 1.5;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .tree-node:hover .tree-node-card {
@@ -257,7 +257,7 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .tree-controls button:hover {
@@ -365,7 +365,7 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .detail-close:hover {
@@ -471,7 +471,7 @@ body {
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   border: 1px solid transparent;
 }
 
@@ -562,7 +562,7 @@ body {
   font-size: 0.875rem;
   font-family: var(--font-sans);
   outline: none;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .search-input::placeholder {
@@ -706,7 +706,7 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   border: 1px solid transparent;
   outline: none;
 }
@@ -843,7 +843,7 @@ body {
   font-family: var(--font-sans);
   font-size: 0.9rem;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .form-input:focus,
@@ -899,7 +899,7 @@ body {
   color: var(--color-text);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -970,7 +970,7 @@ body {
   color: var(--color-text);
   font-size: 1rem;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .list-search-input:focus {
@@ -1133,7 +1133,7 @@ body {
   display: flex;
   gap: 14px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
 }
 
 .search-card:hover {
@@ -1212,7 +1212,7 @@ body {
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   margin-top: 12px;
 }
 
