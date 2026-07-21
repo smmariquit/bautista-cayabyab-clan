@@ -1,208 +1,438 @@
-// prisma/seed.ts
-
 import Database from "better-sqlite3";
 import { randomBytes } from "crypto";
 import { hashPassword } from "../src/lib/auth";
 
-const db = new Database("dev.db");
-db.pragma("journal_mode = DELETE");
-
-function cuid(): string {
-  return randomBytes(16).toString("hex").slice(0, 25);
-}
-
-console.log("🌱 Seeding family tree database...");
-
-// Clear existing data
-db.exec("DELETE FROM ParentChild");
-db.exec("DELETE FROM Partnership");
-db.exec("DELETE FROM Person");
-db.exec("DELETE FROM User");
-
-interface PersonRow {
-  id: string;
+type PersonInput = {
+  code: string;
   firstName: string;
   lastName: string;
-  nicknames: string | null;
-  suffix: string | null;
-  lineageCode: string | null;
-  gender: string | null;
-  birthDate: string | null;
-  deathDate: string | null;
-  birthPlace: string | null;
-  deathPlace: string | null;
-  occupation: string | null;
-  education: string | null;
-  bio: string | null;
-  photoUrl: string | null;
   generation: number;
+  gender?: "M" | "F";
+  nicknames?: string;
+  suffix?: string;
+  occupation?: string;
+  bio?: string;
+  deathDate?: string;
+};
+
+const p = (
+  code: string,
+  firstName: string,
+  lastName: string,
+  generation: number,
+  details: Omit<PersonInput, "code" | "firstName" | "lastName" | "generation"> = {},
+): PersonInput => ({ code, firstName, lastName, generation, ...details });
+
+// Transcribed and checked against all eight pages of the 2024 clan scan.
+// Unknown names stay blank instead of being guessed.
+const people = [
+  // Founding Cayabyab lineage
+  p("C.0.1", "Roberto", "Gundayao", 0, { gender: "M" }),
+  p("C.0.2", "Anacleta", "Junio", 0, { gender: "F" }),
+  p("C.1", "Florentina", "Gundayao", 1, { gender: "F", nicknames: "Florin" }),
+  p("C.1.s", "Marcelino", "Cayabyab", 1, { gender: "M" }),
+  p("C.2", "Genoveva", "Gundayao", 1, { gender: "F" }),
+  p("C.3", "Leonila", "Gundayao", 1, { gender: "F" }),
+  p("C.4", "Marcela", "Gundayao", 1, { gender: "F" }),
+  p("C.5", "Mariano", "Gundayao", 1, { gender: "M" }),
+  p("C.6", "Marcelino", "Gundayao", 1, { gender: "M" }),
+  p("C.7", "Rufina", "Gundayao", 1, { gender: "F" }),
+  p("C.8", "Placido", "Gundayao", 1, { gender: "M" }),
+  p("C.9", "Victorina", "Gundayao", 1, { gender: "F" }),
+
+  // Children of Florentina Gundayao and Marcelino Cayabyab
+  p("1.1", "Pablo", "Cayabyab", 2, { gender: "M" }),
+  p("1.1.s", "Camela", "de Vera", 2, { gender: "F", nicknames: "Itang" }),
+  p("1.2", "Teresa", "Cayabyab", 2, { gender: "F", nicknames: "Sisang" }),
+  p("1.2.s", "Gregorio", "Gundayao", 2, { gender: "M", nicknames: "Gorio" }),
+  p("1.3", "Pastora", "Cayabyab", 2, { gender: "F" }),
+  p("1.4", "Emeterio", "Cayabyab", 2, { gender: "M", nicknames: "Iryong", occupation: "Traveling salesman" }),
+  p("1.4.s", "Teresita", "de Venecia", 2, { gender: "F", nicknames: "Tessie" }),
+  p("1.5", "Pedro", "Cayabyab", 2, { gender: "M", nicknames: "Pero,Pete", occupation: "Government employee in California" }),
+  p("1.5.s", "Aurora", "", 2, { gender: "F", nicknames: "Auring" }),
+  p("1.6", "Teodorico", "Cayabyab", 2, { gender: "M", nicknames: "Ikoy", occupation: "Government employee in Pangasinan" }),
+  p("1.6.s", "Giselda", "", 2, { gender: "F" }),
+  p("1.7", "Esperita", "Cayabyab", 2, { gender: "F", nicknames: "Itay" }),
+  p("1.7.s", "Enrique", "Reyes", 2, { gender: "M" }),
+  p("1.8", "Crispino", "Cayabyab", 2, { gender: "M", nicknames: "Pinoy", occupation: "Collector of small-town lottery bets" }),
+  p("1.8.s", "Esperita", "", 2, { gender: "F", nicknames: "Itay" }),
+
+  // Cayabyab branches named in the scan
+  p("1.1.1", "Angel", "Cayabyab", 3, { gender: "M", nicknames: "Gil" }),
+  p("1.1.2", "Caridad", "Cayabyab", 3, { gender: "F", nicknames: "Caring" }),
+  p("1.2.1", "Jesusa", "Gundayao", 3, { gender: "F", nicknames: "Susay" }),
+  p("1.2.2", "Guillermo", "Gundayao", 3, { gender: "M", nicknames: "Imoy" }),
+  p("1.2.3", "Carmen", "Gundayao", 3, { gender: "F", bio: "Recorded as unmarried" }),
+  p("1.2.4", "Mariano", "Gundayao", 3, { gender: "M", nicknames: "Anong" }),
+  p("1.2.5", "Anita", "Gundayao", 3, { gender: "F", nicknames: "Annette" }),
+  p("1.2.6", "Quentin", "Gundayao", 3),
+  p("1.2.7", "Ernesto", "Gundayao", 3, { gender: "M" }),
+  p("1.4.1", "Andrew", "Cayabyab", 3, { gender: "M" }),
+  p("1.5.1", "Cristopher", "Cayabyab", 3, { gender: "M", nicknames: "Cris" }),
+  p("1.5.2", "Cecilia", "Cayabyab", 3, { gender: "F" }),
+  p("1.5.3", "Ronald", "Cayabyab", 3, { gender: "M" }),
+  p("1.6.1", "Orlando", "Cayabyab", 3, { gender: "M" }),
+  p("1.6.2", "Yolanda", "Cayabyab", 3, { gender: "F" }),
+  p("1.7.1", "Gabriel", "Reyes", 3, { gender: "M" }),
+  p("1.7.1.s", "Monica", "Tolentinno", 3, { gender: "F" }),
+  p("1.7.2", "Romeo", "Reyes", 3, { gender: "M", nicknames: "Romy" }),
+  p("1.7.2.s", "Leonisa", "Gutierrez", 3, { gender: "F" }),
+  p("1.7.1.1", "Marvin", "Reyes", 4, { gender: "M" }),
+  p("1.7.1.2", "Jonsel", "Reyes", 4),
+  p("1.7.1.3", "Niño", "Reyes", 4, { gender: "M" }),
+  p("1.7.1.4", "Mateo", "Reyes", 4, { gender: "M" }),
+  p("1.8.1", "Adelina", "Cayabyab", 3, { gender: "F", nicknames: "Adeling", bio: "The detailed entry spells the first name Adelino." }),
+  p("1.8.1.s", "Alejo", "Santos", 3, { gender: "M" }),
+  p("1.8.2", "Carlos", "Cayabyab", 3, { gender: "M", nicknames: "Caloy" }),
+  p("1.8.2.s", "Vanessa", "", 3, { gender: "F" }),
+  p("1.8.3", "Felipe", "Cayabyab", 3, { gender: "M", nicknames: "Ipoc", bio: "Twin of Jose Cayabyab" }),
+  p("1.8.3.s", "Lita", "Meolan", 3, { gender: "F" }),
+  p("1.8.4", "Jose", "Cayabyab", 3, { gender: "M", bio: "Twin of Felipe Cayabyab" }),
+  p("1.8.4.s", "Elena", "dela Vega", 3, { gender: "F" }),
+  p("1.8.5", "Evelyn", "Cayabyab", 3, { gender: "F" }),
+  p("C.U.1", "Siti", "Cayabyab", 2, { gender: "M", bio: "Named in the scan, but placement in the Cayabyab lineage was not confirmed." }),
+  p("C.U.1.s", "Pacita", "Montemayor", 2, { gender: "F" }),
+  p("C.U.1.1", "Susan", "Cayabyab", 3, { gender: "F" }),
+  p("C.U.1.2", "Antonio", "Cayabyab", 3, { gender: "M" }),
+  p("C.U.1.3", "Dolores", "Cayabyab", 3, { gender: "F" }),
+
+  // Domingo Bautista and Pastora Cayabyab descendants
+  p("1.3.1", "Perfecto", "Bautista", 3, { gender: "M", nicknames: "Peling", occupation: "Medical doctor; governor of Sultan Kudarat", bio: "Governor for three years; died in the 1980s." }),
+  p("1.3.1.s1", "Milagros", "de la Vega", 3, { gender: "F", nicknames: "Mila", occupation: "Hospital administrator" }),
+  p("1.3.1.s2", "Sue", "", 3, { gender: "F" }),
+  p("1.3.1.s3", "Adela", "", 3, { gender: "F" }),
+  p("1.3.1.1", "Gwendolyn", "Bautista", 4, { gender: "F", nicknames: "Gingging" }),
+  p("1.3.1.1.s", "Miguel", "Roxas", 4, { gender: "M", nicknames: "Mike" }),
+  p("1.3.1.2", "Bartolome", "Bautista", 4, { gender: "M", nicknames: "Barry" }),
+  p("1.3.1.2.s", "Cristina", "", 4, { gender: "F", nicknames: "Cristy" }),
+  p("1.3.1.2.1", "Eureka", "Bautista", 5),
+  p("1.3.1.2.2", "Eunice", "Bautista", 5, { gender: "F" }),
+  p("1.3.1.2.3", "Ome", "Bautista", 5),
+  p("1.3.1.2.4", "Ulysses", "Bautista", 5, { gender: "M" }),
+  p("1.3.1.3", "Perfecto", "Bautista", 4, { gender: "M", nicknames: "Pele", suffix: "Jr.", occupation: "Medical doctor" }),
+
+  p("1.3.2", "Petrocencia", "Bautista", 3, { gender: "F", nicknames: "Patring" }),
+  p("1.3.2.s", "Perfecto", "Velasquez", 3, { gender: "M", nicknames: "Peping", suffix: "Jr." }),
+  p("1.3.2.1", "Filomena", "Velasquez", 4, { gender: "F", nicknames: "Mina", occupation: "School teacher and principal" }),
+  p("1.3.2.1.s", "Cresencio", "Cruzada", 4, { gender: "M", nicknames: "Cris", occupation: "Provincial assessor" }),
+  p("1.3.2.1.1", "Christopher Brian", "Cruzada", 5, { gender: "M", nicknames: "Brian", occupation: "Physical education teacher" }),
+  p("1.3.2.1.1.s", "Edal", "Biona", 5, { gender: "F", occupation: "Music teacher" }),
+  p("1.3.2.1.1.1", "Mary Christadel", "Cruzada", 6, { gender: "F", nicknames: "Adel" }),
+  p("1.3.2.1.2", "Paul Michael", "Cruzada", 5, { gender: "M", nicknames: "Paul", occupation: "Medical technologist" }),
+  p("1.3.2.1.2.s", "Sharon Jayne", "Santiago", 5, { gender: "F", nicknames: "Sha", occupation: "Nurse" }),
+  p("1.3.2.1.3", "John Kenneth", "Cruzada", 5, { gender: "M", nicknames: "Kenneth", occupation: "Nurse; businessman" }),
+  p("1.3.2.1.3.s", "Maria Janine", "Rubite", 5, { gender: "F", nicknames: "Jaja", occupation: "Special education teacher; businesswoman" }),
+  p("1.3.2.1.3.1", "Maria Macey", "Cruzada", 6, { gender: "F", nicknames: "Macey" }),
+  p("1.3.2.2", "Perfecto", "Velasquez", 4, { gender: "M", nicknames: "Jun", suffix: "Jr.", occupation: "Businessman" }),
+  p("1.3.2.2.s", "Donatela", "Duque", 4, { gender: "F", nicknames: "Donna", occupation: "Physician" }),
+  p("1.3.2.2.1", "Ysabelle", "Velasquez", 5, { gender: "F" }),
+  p("1.3.2.3", "Lillie", "Velasquez", 4, { gender: "F", occupation: "Government employee; MBA" }),
+  p("1.3.2.3.s", "Bienvenido", "Cruz", 4, { gender: "M", nicknames: "Bien", occupation: "Geodetic engineer; MBA" }),
+  p("1.3.2.3.1", "Haerly Kim", "Cruz", 5, { nicknames: "Kim", occupation: "Geodetic engineer" }),
+  p("1.3.2.3.2", "Aaron Biel", "Cruz", 5, { gender: "M", nicknames: "Biel" }),
+  p("1.3.2.4", "Jude", "Velasquez", 4, { gender: "M", nicknames: "Ju-ju" }),
+  p("1.3.2.4.s", "Estela", "Durana", 4, { gender: "F", nicknames: "Telay" }),
+  p("1.3.2.4.1", "Kristine Anne", "Velasquez", 5, { gender: "F", nicknames: "Tin", occupation: "Nursing assistant" }),
+  p("1.3.2.5", "Fe", "Velasquez", 4, { gender: "F", occupation: "Businesswoman" }),
+  p("1.3.2.5.s", "Eliseo", "Quiambao", 4, { gender: "M", nicknames: "Jojo", suffix: "III" }),
+  p("1.3.2.5.1", "Lourdes", "Quiambao", 5, { gender: "F", nicknames: "Lulu", occupation: "Nurse; businesswoman" }),
+  p("1.3.2.5.1.s", "Bryan", "Diongco", 5, { gender: "M", nicknames: "Bry", occupation: "Businessman" }),
+  p("1.3.2.5.1.1", "St. Khaylie Mhae", "Diongco", 6, { gender: "F", nicknames: "Khaylie" }),
+  p("1.3.2.5.2", "Ellyson", "Quiambao", 5, { gender: "M", nicknames: "Son", occupation: "Information technologist; businessman" }),
+  p("1.3.2.5.2.s", "Jazmine", "Felipe", 5, { gender: "F", nicknames: "Jaz", occupation: "Hotel and restaurant management; businesswoman" }),
+  p("1.3.2.5.2.1", "Pio Jayson", "Quiambao", 6, { gender: "M", nicknames: "Pio" }),
+  p("1.3.2.5.2.2", "Ellyza Vanellope", "Quiambao", 6, { gender: "F", nicknames: "Elly" }),
+
+  p("1.3.3", "Rosario", "Bautista", 3, { gender: "F", nicknames: "Chayong", occupation: "School teacher" }),
+  p("1.3.3.s", "Gonzalo", "del Fierro", 3, { gender: "M", occupation: "Disbursing officer, Department of Education" }),
+  p("1.3.3.1", "Evelyn", "del Fierro", 4, { gender: "F" }),
+  p("1.3.3.1.s", "Mariano", "Tamayo", 4, { gender: "M", nicknames: "Mar", occupation: "US Navy" }),
+  p("1.3.3.1.1", "Arlene", "Tamayo", 5, { gender: "F" }),
+  p("1.3.3.1.1.s", "Tomas", "Martinez", 5, { gender: "M" }),
+  p("1.3.3.1.1.1", "Pia Angeli", "Martinez", 6, { gender: "F" }),
+  p("1.3.3.1.1.2", "Kalani", "Martinez", 6),
+  p("1.3.3.1.2", "Mabel", "Tamayo", 5, { gender: "F" }),
+  p("1.3.3.1.2.s", "Jason", "Alfonso", 5, { gender: "M" }),
+  p("1.3.3.1.2.1", "Marc Jae Liam", "Alfonso", 6, { gender: "M" }),
+  p("1.3.3.1.2.2", "Alfonso", "Alfonso", 6),
+  p("1.3.3.1.2.3", "Louise", "Alfonso", 6, { gender: "F" }),
+  p("1.3.3.1.3", "Mar Angelo", "Tamayo", 5, { gender: "M" }),
+  p("1.3.3.1.3.s", "Krizza", "Cha", 5, { gender: "F" }),
+  p("1.3.3.1.3.1", "Krza Zeline", "Tamayo", 6, { gender: "F", nicknames: "Celine" }),
+  p("1.3.3.1.4", "Mark", "Tamayo", 5, { gender: "M", nicknames: "Toto" }),
+  p("1.3.3.1.4.s", "Rowena Maria", "Mangilit", 5, { gender: "F" }),
+  p("1.3.3.1.5", "Mae", "Tamayo", 5, { gender: "F", occupation: "Disbursing officer, Department of Education" }),
+  p("1.3.3.1.5.s", "Cyrus", "Parsario", 5, { gender: "M" }),
+  p("1.3.3.1.5.1", "Avelyn", "Parsario", 6, { gender: "F" }),
+  p("1.3.3.1.5.2", "Malachi", "Parsario", 6, { gender: "M" }),
+  p("1.3.3.2", "Alice", "del Fierro", 4, { gender: "F" }),
+  p("1.3.3.2.s", "Melchor", "Taroy", 4, { gender: "M", nicknames: "Boy", occupation: "Entrepreneur" }),
+  p("1.3.3.2.1", "Melissa", "Taroy", 5, { gender: "F" }),
+  p("1.3.3.2.1.s", "Constante", "", 5, { gender: "M" }),
+  p("1.3.3.2.1.1", "Paul Dwayne", "Taroy", 6, { gender: "M" }),
+  p("1.3.3.2.1.2", "Joaquin", "Taroy", 6, { gender: "M" }),
+  p("1.3.3.2.1.3", "Celine Azura Kate", "Taroy", 6, { gender: "F" }),
+  p("1.3.3.2.2", "John Melvin", "Taroy", 5, { gender: "M" }),
+  p("1.3.3.2.3", "Alyssa", "Taroy", 5, { gender: "F" }),
+  p("1.3.3.2.3.s", "Jay", "", 5, { gender: "M" }),
+  p("1.3.3.2.3.1", "Jovannah Allysiah Zoe", "Taroy", 6, { gender: "F" }),
+  p("1.3.3.2.4", "Nathalie", "Taroy", 5, { gender: "F", bio: "Twin of Nathaniel Taroy" }),
+  p("1.3.3.2.5", "Nathaniel", "Taroy", 5, { gender: "M", bio: "Twin of Nathalie Taroy" }),
+  p("1.3.3.3", "Romeo", "del Fierro", 4, { gender: "M", nicknames: "Romy" }),
+  p("1.3.3.3.s", "Armida", "Sison", 4, { gender: "F", nicknames: "Minda" }),
+  p("1.3.3.3.1", "Fay", "del Fierro", 5, { gender: "F" }),
+  p("1.3.3.3.2", "Paul", "del Fierro", 5, { gender: "M" }),
+  p("1.3.3.3.3", "Philip", "del Fierro", 5, { gender: "M" }),
+  p("1.3.3.4", "Gonzalo", "del Fierro", 4, { gender: "M", nicknames: "Jojo", suffix: "Jr." }),
+  p("1.3.3.4.s", "Grace", "Baldric", 4, { gender: "F" }),
+  p("1.3.3.4.1", "Eivind", "del Fierro", 5, { gender: "M", bio: "The detailed entry spells the first name Eivine." }),
+  p("1.3.3.4.1.s", "Pauline", "del Mundo", 5, { gender: "F" }),
+  p("1.3.3.4.2", "Abigail", "del Fierro", 5, { gender: "F", bio: "Recorded as single" }),
+  p("1.3.3.4.3", "Jessica", "del Fierro", 5, { gender: "F" }),
+  p("1.3.3.4.3.s", "Marcus", "Berberabe", 5, { gender: "M", nicknames: "Mark" }),
+  p("1.3.3.5", "Ross", "del Fierro", 4, { gender: "M", occupation: "Medical doctor" }),
+  p("1.3.3.5.s", "Annie", "Puno", 4, { gender: "F", occupation: "Medical doctor" }),
+  p("1.3.3.5.1", "Rossanna", "del Fierro", 5, { gender: "F" }),
+
+  p("1.3.4", "Roberto", "Bautista", 3, { gender: "M", nicknames: "Bert", occupation: "Professor; United Nations officer", bio: "UP Los Baños named a building after him." }),
+  p("1.3.4.s", "Ofelia", "Karganilla", 3, { gender: "F", nicknames: "Ofie", occupation: "Retired professor in horticulture" }),
+  p("1.3.4.1", "Laura Grace", "Bautista", 4, { gender: "F", occupation: "Senior manager for food safety, Kraft Heinz" }),
+  p("1.3.4.1.s", "John", "Haas", 4, { gender: "M", occupation: "Medical technologist" }),
+  p("1.3.4.2", "Roberto", "Bautista", 4, { gender: "M", nicknames: "Bobby", suffix: "Jr.", occupation: "Economist; entrepreneur" }),
+  p("1.3.4.2.s", "Winonah", "Ilagan", 4, { gender: "F", nicknames: "Chay", occupation: "Dentist" }),
+  p("1.3.4.3", "Marissa", "Bautista", 4, { gender: "F", nicknames: "Riza,Maris", occupation: "Food scientist; instructor", bio: "Died at age 29 from complications of lupus." }),
+  p("1.3.4.3.s", "Jimmy", "Hung", 4, { gender: "M", occupation: "Businessman" }),
+  p("1.3.4.4", "Belinda Lucille", "Bautista", 4, { gender: "F", nicknames: "Lida,Belle", occupation: "Administrative officer" }),
+  p("1.3.4.4.s", "Mark", "Costales", 4, { gender: "M", occupation: "Agricultural entrepreneur" }),
+  p("1.3.4.4.1", "Yohann Mikhael", "Costales", 5, { gender: "M", nicknames: "Yohann" }),
+  p("1.3.4.4.2", "Danielle Maria", "Costales", 5, { gender: "F", nicknames: "Nini,Danielle" }),
+  p("1.3.4.5", "Kerry Phil", "Bautista", 4, { gender: "M", nicknames: "Kerry", occupation: "Medical doctor" }),
+  p("1.3.4.5.s", "Genevieve", "Siazon", 4, { gender: "F", nicknames: "Gen", occupation: "Medical doctor" }),
+  p("1.3.4.5.1", "Keila Gwyneth", "Bautista", 5, { gender: "F", nicknames: "Keila" }),
+
+  p("1.3.5", "Teofilo", "Bautista", 3, { gender: "M", nicknames: "Turing", occupation: "Mechanical engineer" }),
+  p("1.3.5.s", "Emma", "Bongabong", 3, { gender: "F" }),
+  p("1.3.5.1", "Evangeline", "Bautista", 4, { gender: "F", nicknames: "Vangie", occupation: "Nurse" }),
+  p("1.3.5.1.s", "John", "Diao", 4, { gender: "M", occupation: "Nurse" }),
+  p("1.3.5.1.1", "Dexter", "Diao", 5, { gender: "M" }),
+  p("1.3.5.2", "Perry", "Bautista", 4, { gender: "M" }),
+  p("1.3.5.2.s", "Rose", "Gile", 4, { gender: "F" }),
+
+  p("1.3.6", "Salvador", "Bautista", 3, { gender: "M", nicknames: "Ador,Buddy" }),
+  p("1.3.6.s", "Yolanda", "Vaño", 3, { gender: "F", nicknames: "Yoly", occupation: "Engineer" }),
+  p("1.3.6.1", "Aida", "Bautista", 4, { gender: "F" }),
+  p("1.3.6.1.s", "Ronnie", "Barr", 4, { gender: "M" }),
+  p("1.3.6.1.1", "Dean", "Barr", 5, { gender: "M" }),
+  p("1.3.6.1.2", "Josh", "Barr", 5, { gender: "M" }),
+  p("1.3.6.1.3", "Tal", "Barr", 5),
+  p("1.3.6.2", "Giovanni", "Bautista", 4, { gender: "M" }),
+  p("1.3.6.2.s", "Jaja", "", 4, { gender: "F" }),
+  p("1.3.6.3", "Jonathan", "Bautista", 4, { gender: "M" }),
+  p("1.3.6.3.s", "Tricia", "", 4, { gender: "F" }),
+  p("1.3.6.3.1", "Noah", "Bautista", 5, { gender: "M", bio: "The other parent was not named in the scan." }),
+  p("1.3.6.4", "Andrew", "Bautista", 4, { gender: "M" }),
+
+  p("1.3.7", "Teodora", "Bautista", 3, { gender: "F", nicknames: "Doray" }),
+  p("1.3.7.s", "Caruso", "Dequina", 3, { gender: "M" }),
+  p("1.3.7.1", "Teodycar", "Dequina", 4, { gender: "F" }),
+  p("1.3.7.1.s1", "Tito", "Carumba", 4, { gender: "M" }),
+  p("1.3.7.1.s2", "Rodrigo", "Alhambra", 4, { gender: "M" }),
+  p("1.3.7.1.s3", "Zeus", "Palmes", 4, { gender: "M", nicknames: "Ameng" }),
+  p("1.3.7.1.1", "Albert", "Carumba", 5, { gender: "M" }),
+  p("1.3.7.1.1.s", "Mayin", "Chantil", 5, { gender: "F" }),
+  p("1.3.7.1.2", "Monica", "Alhambra", 5, { gender: "F" }),
+  p("1.3.7.1.3", "Rodrigo", "Alhambra", 5, { gender: "M", suffix: "Jr." }),
+  p("1.3.7.1.4", "Juan Miguel", "Palmes", 5, { gender: "M" }),
+  p("1.3.7.1.5", "Brian James", "Palmes", 5, { gender: "M" }),
+  p("1.3.7.2", "Teresita", "Dequina", 4, { gender: "F", nicknames: "Teng,Terry", occupation: "Nurse" }),
+  p("1.3.7.2.s", "Manolo", "Cruz", 4, { gender: "M", nicknames: "Noli" }),
+  p("1.3.7.2.1", "Michael", "Cruz", 5, { gender: "M" }),
+  p("1.3.7.2.2", "Sean", "Cruz", 5, { gender: "M" }),
+  p("1.3.7.2.2.s", "Caitlyn", "Battitus", 5, { gender: "F" }),
+  p("1.3.7.2.2.1", "Katherine", "Cruz", 6, { gender: "F" }),
+  p("1.3.7.2.3", "Kevin", "Cruz", 5, { gender: "M" }),
+
+  // Bautista ancestry, joined to the Cayabyab lineage through Domingo and Pastora
+  p("B.0.1", "Carlos", "Bautista", 0, { gender: "M" }),
+  p("B.0.2", "Victorina", "Macaraeg", 0, { gender: "F" }),
+  p("B.1", "Claudio", "Bautista", 1, { gender: "M" }),
+  p("B.1.s", "Marcelina", "Bustarde", 1, { gender: "F" }),
+  p("B.2", "Dominga", "Bautista", 1, { gender: "F" }),
+  p("B.2.s", "Ariston", "Llamsen", 1, { gender: "M" }),
+  p("B.3", "Mariano", "Bautista", 1, { gender: "M" }),
+  p("B.1.1", "Pedro", "Bautista", 2, { gender: "M" }),
+  p("B.1.1.s", "Carnay", "Caranto", 2, { gender: "F" }),
+  p("B.1.1.1", "Adela", "Bautista", 3, { gender: "F" }),
+  p("B.1.1.1.s", "Juanita", "Mercado", 3),
+  p("B.1.1.2", "Purita", "Bautista", 3, { gender: "F" }),
+  p("B.1.1.3", "Felipe", "Bautista", 3, { gender: "M" }),
+  p("B.1.1.3.s", "Senny", "", 3),
+  p("B.1.1.4", "Sitoy", "Bautista", 3),
+  p("B.1.2", "Jose", "Bautista", 2, { gender: "M" }),
+  p("B.1.2.s", "Edang", "", 2, { gender: "F" }),
+  p("B.1.2.1", "Rebecca", "Bautista", 3, { gender: "F" }),
+  p("B.1.2.1.s", "Emong", "", 3, { gender: "M" }),
+  p("B.1.2.2", "Ineng", "Bautista", 3, { gender: "F" }),
+  p("B.1.2.2.s", "Berting", "", 3, { gender: "M" }),
+  p("B.1.2.3", "Itang", "Bautista", 3),
+  p("B.1.2.4", "Naty", "Bautista", 3, { gender: "F" }),
+  p("B.1.2.4.s", "Martin", "", 3, { gender: "M" }),
+  p("B.1.2.5", "Ester", "Bautista", 3, { gender: "F" }),
+  p("B.1.2.6", "Flor", "Bautista", 3, { gender: "F" }),
+  p("B.1.2.6.s", "Mario", "", 3, { gender: "M" }),
+  p("B.1.2.7", "Eking", "Bautista", 3),
+  p("B.1.3", "Domingo", "Bautista", 2, { gender: "M" }),
+  p("B.2.1", "Francisca", "Bautista", 2, { gender: "F" }),
+  p("B.2.1.s", "", "Martinez", 2, { gender: "M" }),
+  p("B.2.1.1", "Rebecca", "Martinez", 3, { gender: "F", deathDate: "Deceased" }),
+  p("B.2.1.2", "Juan", "Martinez", 3, { gender: "M", deathDate: "Deceased" }),
+  p("B.2.1.3", "Araceli", "Martinez", 3, { gender: "F", nicknames: "Lily", occupation: "Lawyer in San Carlos City, Pangasinan" }),
+  p("B.2.2", "Bartolome", "Bautista", 2, { gender: "M" }),
+  p("B.2.3", "Inocencio", "Bautista", 2, { gender: "M" }),
+  p("B.2.4", "Auring", "Bautista", 2, { gender: "F" }),
+  p("B.2.4.s", "", "Mamaraglo", 2, { gender: "M" }),
+] satisfies PersonInput[];
+
+type PartnershipInput = [string, string, "married" | "livein" | "divorced"];
+
+const partnerships: PartnershipInput[] = [
+  ["C.0.1", "C.0.2", "married"], ["C.1", "C.1.s", "married"],
+  ["1.1", "1.1.s", "married"], ["1.2", "1.2.s", "married"], ["1.3", "B.1.3", "married"],
+  ["1.4", "1.4.s", "married"], ["1.5", "1.5.s", "married"], ["1.6", "1.6.s", "married"],
+  ["1.7", "1.7.s", "married"], ["1.8", "1.8.s", "married"], ["C.U.1", "C.U.1.s", "married"],
+  ["1.7.1", "1.7.1.s", "married"], ["1.7.2", "1.7.2.s", "married"],
+  ["1.8.1", "1.8.1.s", "married"], ["1.8.2", "1.8.2.s", "married"],
+  ["1.8.3", "1.8.3.s", "married"], ["1.8.4", "1.8.4.s", "married"],
+  ["1.3.1", "1.3.1.s1", "married"], ["1.3.1", "1.3.1.s2", "livein"], ["1.3.1", "1.3.1.s3", "livein"],
+  ["1.3.1.1", "1.3.1.1.s", "married"], ["1.3.1.2", "1.3.1.2.s", "married"],
+  ["1.3.2", "1.3.2.s", "married"], ["1.3.2.1", "1.3.2.1.s", "married"],
+  ["1.3.2.1.1", "1.3.2.1.1.s", "married"], ["1.3.2.1.2", "1.3.2.1.2.s", "married"],
+  ["1.3.2.1.3", "1.3.2.1.3.s", "married"], ["1.3.2.2", "1.3.2.2.s", "married"],
+  ["1.3.2.3", "1.3.2.3.s", "married"], ["1.3.2.4", "1.3.2.4.s", "married"],
+  ["1.3.2.5", "1.3.2.5.s", "married"], ["1.3.2.5.1", "1.3.2.5.1.s", "married"],
+  ["1.3.2.5.2", "1.3.2.5.2.s", "married"],
+  ["1.3.3", "1.3.3.s", "married"], ["1.3.3.1", "1.3.3.1.s", "married"],
+  ["1.3.3.1.1", "1.3.3.1.1.s", "married"], ["1.3.3.1.2", "1.3.3.1.2.s", "married"],
+  ["1.3.3.1.3", "1.3.3.1.3.s", "married"], ["1.3.3.1.4", "1.3.3.1.4.s", "married"],
+  ["1.3.3.1.5", "1.3.3.1.5.s", "married"], ["1.3.3.2", "1.3.3.2.s", "married"],
+  ["1.3.3.2.1", "1.3.3.2.1.s", "livein"], ["1.3.3.2.3", "1.3.3.2.3.s", "livein"],
+  ["1.3.3.3", "1.3.3.3.s", "married"], ["1.3.3.4", "1.3.3.4.s", "married"],
+  ["1.3.3.4.1", "1.3.3.4.1.s", "married"], ["1.3.3.4.3", "1.3.3.4.3.s", "married"],
+  ["1.3.3.5", "1.3.3.5.s", "married"],
+  ["1.3.4", "1.3.4.s", "married"], ["1.3.4.1", "1.3.4.1.s", "married"],
+  ["1.3.4.2", "1.3.4.2.s", "married"], ["1.3.4.3", "1.3.4.3.s", "married"],
+  ["1.3.4.4", "1.3.4.4.s", "married"], ["1.3.4.5", "1.3.4.5.s", "married"],
+  ["1.3.5", "1.3.5.s", "married"], ["1.3.5.1", "1.3.5.1.s", "married"],
+  ["1.3.5.2", "1.3.5.2.s", "married"],
+  ["1.3.6", "1.3.6.s", "married"], ["1.3.6.1", "1.3.6.1.s", "married"],
+  ["1.3.6.2", "1.3.6.2.s", "married"], ["1.3.6.3", "1.3.6.3.s", "married"],
+  ["1.3.7", "1.3.7.s", "married"], ["1.3.7.1", "1.3.7.1.s1", "married"],
+  ["1.3.7.1", "1.3.7.1.s2", "livein"], ["1.3.7.1", "1.3.7.1.s3", "livein"],
+  ["1.3.7.1.1", "1.3.7.1.1.s", "married"], ["1.3.7.2", "1.3.7.2.s", "divorced"],
+  ["1.3.7.2.2", "1.3.7.2.2.s", "married"],
+  ["B.0.1", "B.0.2", "married"], ["B.1", "B.1.s", "married"], ["B.2", "B.2.s", "married"],
+  ["B.1.1", "B.1.1.s", "married"], ["B.1.1.1", "B.1.1.1.s", "married"],
+  ["B.1.1.3", "B.1.1.3.s", "married"], ["B.1.2", "B.1.2.s", "married"],
+  ["B.1.2.1", "B.1.2.1.s", "married"], ["B.1.2.2", "B.1.2.2.s", "married"],
+  ["B.1.2.4", "B.1.2.4.s", "married"], ["B.1.2.6", "B.1.2.6.s", "married"],
+  ["B.2.1", "B.2.1.s", "married"], ["B.2.4", "B.2.4.s", "married"],
+];
+
+type FamilyInput = [string[], string[]];
+
+const families: FamilyInput[] = [
+  [["C.0.1", "C.0.2"], ["C.1", "C.2", "C.3", "C.4", "C.5", "C.6", "C.7", "C.8", "C.9"]],
+  [["C.1", "C.1.s"], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8"]],
+  [["1.1", "1.1.s"], ["1.1.1", "1.1.2"]],
+  [["1.2", "1.2.s"], ["1.2.1", "1.2.2", "1.2.3", "1.2.4", "1.2.5", "1.2.6", "1.2.7"]],
+  [["1.4", "1.4.s"], ["1.4.1"]], [["1.5", "1.5.s"], ["1.5.1", "1.5.2", "1.5.3"]],
+  [["1.6", "1.6.s"], ["1.6.1", "1.6.2"]], [["1.7", "1.7.s"], ["1.7.1", "1.7.2"]],
+  [["1.7.1", "1.7.1.s"], ["1.7.1.1", "1.7.1.2", "1.7.1.3", "1.7.1.4"]],
+  [["1.8", "1.8.s"], ["1.8.1", "1.8.2", "1.8.3", "1.8.4", "1.8.5"]],
+  [["C.U.1", "C.U.1.s"], ["C.U.1.1", "C.U.1.2", "C.U.1.3"]],
+  [["1.3", "B.1.3"], ["1.3.1", "1.3.2", "1.3.3", "1.3.4", "1.3.5", "1.3.6", "1.3.7"]],
+  [["1.3.1", "1.3.1.s1"], ["1.3.1.1"]], [["1.3.1", "1.3.1.s2"], ["1.3.1.2"]],
+  [["1.3.1", "1.3.1.s3"], ["1.3.1.3"]], [["1.3.1.2", "1.3.1.2.s"], ["1.3.1.2.1", "1.3.1.2.2", "1.3.1.2.3", "1.3.1.2.4"]],
+  [["1.3.2", "1.3.2.s"], ["1.3.2.1", "1.3.2.2", "1.3.2.3", "1.3.2.4", "1.3.2.5"]],
+  [["1.3.2.1", "1.3.2.1.s"], ["1.3.2.1.1", "1.3.2.1.2", "1.3.2.1.3"]],
+  [["1.3.2.1.1", "1.3.2.1.1.s"], ["1.3.2.1.1.1"]], [["1.3.2.1.3", "1.3.2.1.3.s"], ["1.3.2.1.3.1"]],
+  [["1.3.2.2", "1.3.2.2.s"], ["1.3.2.2.1"]], [["1.3.2.3", "1.3.2.3.s"], ["1.3.2.3.1", "1.3.2.3.2"]],
+  [["1.3.2.4", "1.3.2.4.s"], ["1.3.2.4.1"]], [["1.3.2.5", "1.3.2.5.s"], ["1.3.2.5.1", "1.3.2.5.2"]],
+  [["1.3.2.5.1", "1.3.2.5.1.s"], ["1.3.2.5.1.1"]], [["1.3.2.5.2", "1.3.2.5.2.s"], ["1.3.2.5.2.1", "1.3.2.5.2.2"]],
+  [["1.3.3", "1.3.3.s"], ["1.3.3.1", "1.3.3.2", "1.3.3.3", "1.3.3.4", "1.3.3.5"]],
+  [["1.3.3.1", "1.3.3.1.s"], ["1.3.3.1.1", "1.3.3.1.2", "1.3.3.1.3", "1.3.3.1.4", "1.3.3.1.5"]],
+  [["1.3.3.1.1", "1.3.3.1.1.s"], ["1.3.3.1.1.1", "1.3.3.1.1.2"]],
+  [["1.3.3.1.2", "1.3.3.1.2.s"], ["1.3.3.1.2.1", "1.3.3.1.2.2", "1.3.3.1.2.3"]],
+  [["1.3.3.1.3", "1.3.3.1.3.s"], ["1.3.3.1.3.1"]], [["1.3.3.1.5", "1.3.3.1.5.s"], ["1.3.3.1.5.1", "1.3.3.1.5.2"]],
+  [["1.3.3.2", "1.3.3.2.s"], ["1.3.3.2.1", "1.3.3.2.2", "1.3.3.2.3", "1.3.3.2.4", "1.3.3.2.5"]],
+  [["1.3.3.2.1", "1.3.3.2.1.s"], ["1.3.3.2.1.1", "1.3.3.2.1.2", "1.3.3.2.1.3"]],
+  [["1.3.3.2.3", "1.3.3.2.3.s"], ["1.3.3.2.3.1"]], [["1.3.3.3", "1.3.3.3.s"], ["1.3.3.3.1", "1.3.3.3.2", "1.3.3.3.3"]],
+  [["1.3.3.4", "1.3.3.4.s"], ["1.3.3.4.1", "1.3.3.4.2", "1.3.3.4.3"]], [["1.3.3.5", "1.3.3.5.s"], ["1.3.3.5.1"]],
+  [["1.3.4", "1.3.4.s"], ["1.3.4.1", "1.3.4.2", "1.3.4.3", "1.3.4.4", "1.3.4.5"]],
+  [["1.3.4.4", "1.3.4.4.s"], ["1.3.4.4.1", "1.3.4.4.2"]], [["1.3.4.5", "1.3.4.5.s"], ["1.3.4.5.1"]],
+  [["1.3.5", "1.3.5.s"], ["1.3.5.1", "1.3.5.2"]], [["1.3.5.1", "1.3.5.1.s"], ["1.3.5.1.1"]],
+  [["1.3.6", "1.3.6.s"], ["1.3.6.1", "1.3.6.2", "1.3.6.3", "1.3.6.4"]],
+  [["1.3.6.1", "1.3.6.1.s"], ["1.3.6.1.1", "1.3.6.1.2", "1.3.6.1.3"]], [["1.3.6.3"], ["1.3.6.3.1"]],
+  [["1.3.7", "1.3.7.s"], ["1.3.7.1", "1.3.7.2"]], [["1.3.7.1", "1.3.7.1.s1"], ["1.3.7.1.1"]],
+  [["1.3.7.1", "1.3.7.1.s2"], ["1.3.7.1.2", "1.3.7.1.3"]], [["1.3.7.1", "1.3.7.1.s3"], ["1.3.7.1.4", "1.3.7.1.5"]],
+  [["1.3.7.2", "1.3.7.2.s"], ["1.3.7.2.1", "1.3.7.2.2", "1.3.7.2.3"]], [["1.3.7.2.2", "1.3.7.2.2.s"], ["1.3.7.2.2.1"]],
+  [["B.0.1", "B.0.2"], ["B.1", "B.2", "B.3"]], [["B.1", "B.1.s"], ["B.1.1", "B.1.2", "B.1.3"]],
+  [["B.1.1", "B.1.1.s"], ["B.1.1.1", "B.1.1.2", "B.1.1.3", "B.1.1.4"]],
+  [["B.1.2", "B.1.2.s"], ["B.1.2.1", "B.1.2.2", "B.1.2.3", "B.1.2.4", "B.1.2.5", "B.1.2.6", "B.1.2.7"]],
+  [["B.2", "B.2.s"], ["B.2.1", "B.2.2", "B.2.3", "B.2.4"]],
+  [["B.2.1", "B.2.1.s"], ["B.2.1.1", "B.2.1.2", "B.2.1.3"]],
+];
+
+const knownCodes = new Set(people.map(({ code }) => code));
+if (knownCodes.size !== people.length) throw new Error("Duplicate family lineage code in seed data");
+for (const codes of [...partnerships.map(([a, b]) => [a, b]), ...families.flat()]) {
+  for (const code of codes) if (!knownCodes.has(code)) throw new Error(`Missing person for ${code}`);
 }
 
+const db = new Database("dev.db");
+db.pragma("journal_mode = DELETE");
+db.exec("DELETE FROM ParentChild; DELETE FROM Partnership; DELETE FROM Person; DELETE FROM User;");
+
+const cuid = () => randomBytes(16).toString("hex").slice(0, 25);
+const personIds = new Map<string, string>();
 const insertPerson = db.prepare(`
-  INSERT INTO Person (id, firstName, lastName, nicknames, suffix, lineageCode, gender, 
-    birthDate, deathDate, birthPlace, deathPlace, occupation, education, bio, photoUrl, 
+  INSERT INTO Person (id, firstName, lastName, nicknames, suffix, lineageCode, gender,
+    birthDate, deathDate, birthPlace, deathPlace, occupation, education, bio, photoUrl,
     generation, createdAt, updatedAt)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+  VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, ?, NULL, ?, NULL, ?, datetime('now'), datetime('now'))
 `);
+
+for (const person of people) {
+  const id = cuid();
+  personIds.set(person.code, id);
+  insertPerson.run(
+    id, person.firstName, person.lastName, person.nicknames ?? null, person.suffix ?? null,
+    person.code, person.gender ?? null, person.deathDate ?? null, person.occupation ?? null,
+    person.bio ?? null, person.generation,
+  );
+}
 
 const insertPartnership = db.prepare(`
   INSERT INTO Partnership (id, partner1Id, partner2Id, type, date, notes)
-  VALUES (?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, NULL, NULL)
 `);
-
-const insertParentChild = db.prepare(`
-  INSERT INTO ParentChild (id, parentId, childId)
-  VALUES (?, ?, ?)
-`);
-
-const personMap = new Map<string, string>();
-
-function addPerson(code: string, firstName: string, lastName: string, opts: Partial<PersonRow> = {}) {
-  const id = cuid();
-  insertPerson.run(
-    id, firstName, lastName,
-    opts.nicknames ?? null, opts.suffix ?? null, code,
-    opts.gender ?? null, opts.birthDate ?? null, opts.deathDate ?? null,
-    opts.birthPlace ?? null, opts.deathPlace ?? null,
-    opts.occupation ?? null, opts.education ?? null, opts.bio ?? null,
-    opts.photoUrl ?? null, opts.generation ?? 0
-  );
-  personMap.set(code, id);
-  console.log(`  ✅ ${firstName} ${lastName} (${code})`);
-  return id;
+for (const [first, second, type] of partnerships) {
+  insertPartnership.run(cuid(), personIds.get(first), personIds.get(second), type);
 }
 
-// ── GENERATION 0: Root Ancestors ──
-addPerson("0.1", "Roberto", "Gundayao", { gender: "M", generation: 0 });
-addPerson("0.2", "Anacleta", "Junio", { gender: "F", generation: 0 });
-
-// ── GENERATION 1 ──
-addPerson("1", "Florentina", "Gundayao", { nicknames: "Florin", gender: "F", generation: 1 });
-addPerson("1.s", "Marcelino", "Cayabyab", { gender: "M", generation: 1 });
-addPerson("2", "Genoveva", "Gundayao", { gender: "F", generation: 1 });
-addPerson("3", "Leonila", "Gundayao", { gender: "F", generation: 1 });
-addPerson("4", "Marcela", "Gundayao", { gender: "F", generation: 1 });
-addPerson("5", "Mariano", "Gundayao", { gender: "M", generation: 1 });
-addPerson("6", "Marcelino", "Gundayao", { gender: "M", generation: 1 });
-addPerson("7", "Rufina", "Gundayao", { gender: "F", generation: 1 });
-addPerson("8", "Placido", "Gundayao", { gender: "M", generation: 1 });
-addPerson("9", "Victorina", "Gundayao", { gender: "F", generation: 1 });
-
-// ── GENERATION 2: Children of Florentina & Marcelino ──
-addPerson("1.1", "Pablo", "Cayabyab", { gender: "M", generation: 2 });
-addPerson("1.1.s", "Camela", "de Vera", { nicknames: "Itang", gender: "F", generation: 2 });
-addPerson("1.2", "Teresa", "Cayabyab", { nicknames: "Sisang", gender: "F", generation: 2 });
-addPerson("1.2.s", "Gregorio", "Gundayao", { nicknames: "Gorio", gender: "M", generation: 2 });
-addPerson("1.3", "Pastora", "Cayabyab", { gender: "F", generation: 2 });
-addPerson("1.3.s", "Domingo", "Bautista", { gender: "M", generation: 2 });
-addPerson("1.4", "Emeterio", "Cayabyab", { nicknames: "Iryong", gender: "M", generation: 2, occupation: "Traveling salesman" });
-addPerson("1.4.s", "Teresita", "de Venecia", { nicknames: "Tessie", gender: "F", generation: 2 });
-addPerson("1.5", "Pedro", "Cayabyab", { nicknames: "Pero,Pete", gender: "M", generation: 2, occupation: "Government employee in California" });
-addPerson("1.6", "Teodorico", "Cayabyab", { nicknames: "Ikoy", gender: "M", generation: 2, occupation: "Government employee in Pangasinan" });
-addPerson("1.7", "Esperita", "Cayabyab", { nicknames: "Itay", gender: "F", generation: 2 });
-addPerson("1.7.s", "Enrique", "Reyes", { gender: "M", generation: 2 });
-addPerson("1.8", "Crispino", "Cayabyab", { nicknames: "Pinoy", gender: "M", generation: 2, occupation: "Collector of bets of small town lottery" });
-addPerson("1.9", "Siti", "Cayabyab", { gender: "M", generation: 2 });
-addPerson("1.9.s", "Pacita", "Montemayor", { gender: "F", generation: 2 });
-
-// ── GENERATION 3: Children of Pastora & Domingo ──
-addPerson("1.3.1", "Perfecto", "Bautista", { nicknames: "Peling", gender: "M", generation: 3, occupation: "Medical Doctor, Governor", bio: "Governor of Sultan Kudarat province for 3 years, died in the 80s" });
-addPerson("1.3.1.s", "Milagros", "de la Vega", { nicknames: "Mila", gender: "F", generation: 3 });
-addPerson("1.3.2", "Petrocencia", "Bautista", { nicknames: "Patring", gender: "F", generation: 3 });
-addPerson("1.3.2.s", "Perfecto", "Velasquez Jr.", { nicknames: "Peping", gender: "M", generation: 3 });
-addPerson("1.3.3", "Rosario", "Bautista", { nicknames: "Chayong", gender: "F", generation: 3 });
-addPerson("1.3.3.s", "Gonzalo", "del Fierro", { gender: "M", generation: 3 });
-addPerson("1.3.4", "Roberto", "Bautista", { nicknames: "Bert", gender: "M", generation: 3, occupation: "Professor, United Nations Officer", bio: "10 years as Professor in the Philippines, 9 years in Malaysia, 10 years as UN Officer. UPLB named a building after him." });
-addPerson("1.3.4.s", "Ofelia", "Karganilla", { nicknames: "Ofie", gender: "F", generation: 3, occupation: "Retired Professor in Horticulture", bio: "Director of a research center of UPLB for 6 years, recipient of many awards" });
-addPerson("1.3.5", "Teofilo", "Bautista", { nicknames: "Turing", gender: "M", generation: 3, occupation: "Mechanical engineer" });
-addPerson("1.3.5.s", "Emma", "Bongabong", { gender: "F", generation: 3 });
-addPerson("1.3.6", "Salvador", "Bautista", { nicknames: "Ador,Buddy", gender: "M", generation: 3 });
-addPerson("1.3.6.s", "Yolanda", "Vaño", { nicknames: "Yoly", gender: "F", generation: 3 });
-addPerson("1.3.7", "Teodora", "Bautista", { nicknames: "Doray", gender: "F", generation: 3 });
-addPerson("1.3.7.s", "Caruso", "Dequina", { gender: "M", generation: 3 });
-addPerson("1.1.1", "Angel", "Cayabyab", { nicknames: "Gil", gender: "M", generation: 3 });
-addPerson("1.1.2", "Caridad", "Cayabyab", { nicknames: "Caring", gender: "F", generation: 3 });
-addPerson("1.9.1", "Susan", "Cayabyab", { gender: "F", generation: 3 });
-addPerson("1.9.2", "Antonio", "Cayabyab", { gender: "M", generation: 3 });
-addPerson("1.9.3", "Dolores", "Cayabyab", { gender: "F", generation: 3 });
-
-// ── GENERATION 4: Grandchildren ──
-addPerson("1.3.1.1", "Gwendolyn", "Bautista", { nicknames: "Gingging", gender: "F", generation: 4 });
-addPerson("1.3.2.1", "Filomena", "Velasquez", { nicknames: "Mina", gender: "F", generation: 4, occupation: "School teacher and Principal" });
-addPerson("1.3.2.1.s", "Cresencio", "Cruzada", { nicknames: "Cris", gender: "M", generation: 4, occupation: "Provincial Assessor" });
-addPerson("1.3.2.3", "Lillie", "Velasquez", { gender: "F", generation: 4 });
-addPerson("1.3.2.3.s", "Bienvenido", "Cruz", { nicknames: "Bien", gender: "M", generation: 4 });
-addPerson("1.3.3.1", "Evelyn", "del Fierro", { gender: "F", generation: 4 });
-addPerson("1.3.3.1.s", "Mariano", "Tamayo", { nicknames: "Mar", gender: "M", generation: 4, occupation: "US Navy" });
-addPerson("1.3.3.2", "Alice", "del Fierro", { gender: "F", generation: 4 });
-addPerson("1.3.3.2.s", "Melchor", "Taroy", { nicknames: "Boy", gender: "M", generation: 4 });
-addPerson("1.3.4.1", "Laura Grace", "Bautista", { gender: "F", generation: 4, occupation: "Senior Manager for Food Safety, KraftHeinz" });
-addPerson("1.3.4.2", "Roberto Jr.", "Bautista", { nicknames: "Bobby", gender: "M", generation: 4, occupation: "Economist, Entrepreneur", bio: "President of local chapter of Rotary International and Toastmaster's International" });
-addPerson("1.3.4.3", "Marissa", "Bautista", { nicknames: "Riza,Maris", gender: "F", generation: 4, occupation: "Food scientist, instructor", bio: "Died at 29 years old of complications from Lupus" });
-addPerson("1.3.4.4", "Belinda Lucille", "Bautista", { nicknames: "Lida,Belle", gender: "F", generation: 4, occupation: "Administrative officer" });
-addPerson("1.3.4.5", "Kerry Phil", "Bautista", { nicknames: "Kerry", gender: "M", generation: 4, occupation: "Medical doctor", bio: "President of Makiling Medical Society and Laguna Medical Society" });
-addPerson("1.3.5.1", "Evangeline", "Bautista", { nicknames: "Vangie", gender: "F", generation: 4, occupation: "Nurse" });
-addPerson("1.3.5.2", "Perry", "Bautista", { gender: "M", generation: 4 });
-addPerson("1.3.6.1", "Aida", "Bautista", { gender: "F", generation: 4 });
-addPerson("1.3.6.2", "Giovanni", "Bautista", { gender: "M", generation: 4 });
-addPerson("1.3.6.3", "Jonathan", "Bautista", { gender: "M", generation: 4 });
-addPerson("1.3.6.4", "Andrew", "Bautista", { gender: "M", generation: 4 });
-addPerson("1.3.7.1", "Teodycar", "Dequina", { gender: "F", generation: 4 });
-addPerson("1.3.7.2", "Teresita", "Dequina", { nicknames: "Teng,Terry", gender: "F", generation: 4, occupation: "Nurse" });
-
-// ── PARTNERSHIPS ──
-const partnerPairs = [
-  ["0.1", "0.2"], ["1", "1.s"], ["1.1", "1.1.s"], ["1.2", "1.2.s"],
-  ["1.3", "1.3.s"], ["1.4", "1.4.s"], ["1.7", "1.7.s"],
-  ["1.3.1", "1.3.1.s"], ["1.3.2", "1.3.2.s"], ["1.3.3", "1.3.3.s"],
-  ["1.3.4", "1.3.4.s"], ["1.3.5", "1.3.5.s"], ["1.3.6", "1.3.6.s"],
-  ["1.3.7", "1.3.7.s"], ["1.3.2.1", "1.3.2.1.s"], ["1.3.2.3", "1.3.2.3.s"],
-  ["1.3.3.1", "1.3.3.1.s"], ["1.3.3.2", "1.3.3.2.s"], ["1.9", "1.9.s"],
-];
-
-for (const [c1, c2] of partnerPairs) {
-  const id1 = personMap.get(c1), id2 = personMap.get(c2);
-  if (id1 && id2) insertPartnership.run(cuid(), id1, id2, "married", null, null);
-}
-console.log(`\n  ✅ ${partnerPairs.length} partnerships created`);
-
-// ── PARENT-CHILD RELATIONSHIPS ──
-function addChildren(parentCodes: string[], childCodes: string[]) {
-  for (const pc of parentCodes) {
-    for (const cc of childCodes) {
-      const pid = personMap.get(pc), cid = personMap.get(cc);
-      if (pid && cid) insertParentChild.run(cuid(), pid, cid);
-    }
+const insertParentChild = db.prepare("INSERT INTO ParentChild (id, parentId, childId) VALUES (?, ?, ?)");
+for (const [parents, children] of families) {
+  for (const parent of parents) {
+    for (const child of children) insertParentChild.run(cuid(), personIds.get(parent), personIds.get(child));
   }
 }
 
-addChildren(["0.1", "0.2"], ["1", "2", "3", "4", "5", "6", "7", "8", "9"]);
-addChildren(["1", "1.s"], ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9"]);
-addChildren(["1.3", "1.3.s"], ["1.3.1", "1.3.2", "1.3.3", "1.3.4", "1.3.5", "1.3.6", "1.3.7"]);
-addChildren(["1.3.1", "1.3.1.s"], ["1.3.1.1"]);
-addChildren(["1.3.2", "1.3.2.s"], ["1.3.2.1", "1.3.2.3"]);
-addChildren(["1.3.3", "1.3.3.s"], ["1.3.3.1", "1.3.3.2"]);
-addChildren(["1.3.4", "1.3.4.s"], ["1.3.4.1", "1.3.4.2", "1.3.4.3", "1.3.4.4", "1.3.4.5"]);
-addChildren(["1.3.5", "1.3.5.s"], ["1.3.5.1", "1.3.5.2"]);
-addChildren(["1.3.6", "1.3.6.s"], ["1.3.6.1", "1.3.6.2", "1.3.6.3", "1.3.6.4"]);
-addChildren(["1.3.7", "1.3.7.s"], ["1.3.7.1", "1.3.7.2"]);
-addChildren(["1.1", "1.1.s"], ["1.1.1", "1.1.2"]);
-addChildren(["1.9", "1.9.s"], ["1.9.1", "1.9.2", "1.9.3"]);
-
-console.log("  ✅ Parent-child relationships created");
-
-// ── SEED INITIAL USER ──
 const adminUsername = process.env.ADMIN_USERNAME || "admin";
 const adminPassword = process.env.ADMIN_PASSWORD || "clanpassword123";
-const hashedPassword = hashPassword(adminPassword);
-
-const insertUser = db.prepare(`
+db.prepare(`
   INSERT INTO User (id, username, password, role, createdAt, updatedAt)
-  VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
-`);
-insertUser.run(cuid(), adminUsername, hashedPassword, "admin");
-console.log(`  ✅ Editor user seeded: username='${adminUsername}', password='${adminPassword}'`);
+  VALUES (?, ?, ?, 'admin', datetime('now'), datetime('now'))
+`).run(cuid(), adminUsername, hashPassword(adminPassword));
 
-console.log("\n🌳 Seeding complete!");
-
+console.log(`Seeded ${people.length} people, ${partnerships.length} partnerships, and ${families.length} family groups.`);
 db.close();

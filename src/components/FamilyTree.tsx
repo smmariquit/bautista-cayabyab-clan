@@ -1,9 +1,6 @@
-// src/components/FamilyTree.tsx
-
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import * as d3 from "d3";
+import { useMemo, useState } from "react";
 import type { TreePerson } from "@/lib/types";
 
 interface FamilyTreeProps {
@@ -11,398 +8,214 @@ interface FamilyTreeProps {
   onSelectPerson: (person: TreePerson) => void;
 }
 
-interface HierarchyNode {
-  person: TreePerson;
-  partner?: TreePerson;
-  children?: HierarchyNode[];
+interface FamilyUnit {
+  key: string;
+  adults: TreePerson[];
+  children: TreePerson[];
+  type: string;
 }
 
-const NODE_W = 180;
-const NODE_H = 48;
-const PARTNER_GAP = 6;
-const H_GAP = 30; // Gap between siblings (horizontal)
-const V_GAP = 60; // Gap between generations (vertical)
-const LAYOUT_DX = NODE_W + H_GAP;
-const LAYOUT_DY = (NODE_H * 2) + PARTNER_GAP + V_GAP;
+const comparePeople = (a: TreePerson, b: TreePerson) =>
+  (a.lineageCode || "").localeCompare(b.lineageCode || "", undefined, { numeric: true }) ||
+  `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+
+const fullName = (person: TreePerson) =>
+  [person.firstName, person.lastName, person.suffix].filter(Boolean).join(" ");
+
+function PersonName({ person, onSelect }: { person: TreePerson; onSelect: (person: TreePerson) => void }) {
+  return (
+    <button className="poster-person" data-person-id={person.id} type="button" onClick={() => onSelect(person)}>
+      <span className="poster-person-name">{fullName(person)}</span>
+      {person.nicknames && (
+        <span className="poster-nickname"> ({person.nicknames.split(",").join(" / ")})</span>
+      )}
+    </button>
+  );
+}
+
+function buildFamilyUnits(people: TreePerson[]) {
+  const byId = new Map(people.map((person) => [person.id, person]));
+  const units: FamilyUnit[] = [];
+  const seenPartnerships = new Set<string>();
+  const assignedChildren = new Set<string>();
+  const represented = new Set<string>();
+
+  for (const person of people) {
+    for (const partnership of person.partners) {
+      const partner = byId.get(partnership.id);
+      if (!partner) continue;
+
+      const key = [person.id, partner.id].sort().join(":");
+      if (seenPartnerships.has(key)) continue;
+      seenPartnerships.add(key);
+
+      const adults = [person, partner].sort(comparePeople);
+      const children = people
+        .filter((child) => child.parents.includes(person.id) && child.parents.includes(partner.id))
+        .sort(comparePeople);
+
+      adults.forEach((adult) => represented.add(adult.id));
+      children.forEach((child) => {
+        assignedChildren.add(child.id);
+        represented.add(child.id);
+      });
+      units.push({ key, adults, children, type: partnership.type });
+    }
+  }
+
+  for (const person of people) {
+    const children = person.children
+      .filter((childId) => !assignedChildren.has(childId))
+      .map((childId) => byId.get(childId))
+      .filter((child): child is TreePerson => Boolean(child))
+      .sort(comparePeople);
+
+    if (children.length === 0) continue;
+    represented.add(person.id);
+    children.forEach((child) => represented.add(child.id));
+    units.push({ key: `single:${person.id}`, adults: [person], children, type: "unrecorded" });
+  }
+
+  units.sort((a, b) => {
+    const generation = Math.min(...a.adults.map((person) => person.generation)) - Math.min(...b.adults.map((person) => person.generation));
+    return generation || comparePeople(a.adults[0], b.adults[0]);
+  });
+
+  return {
+    units,
+    unplaced: people.filter((person) => !represented.has(person.id)).sort(comparePeople),
+  };
+}
 
 export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<TreePerson[]>([]);
-  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-
-
-  // Search filtering
-  useEffect(() => {
-    if (!search.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    const q = search.toLowerCase();
-    setSearchResults(
-      people.filter(
-        (p) =>
-          p.firstName.toLowerCase().includes(q) ||
-          p.lastName.toLowerCase().includes(q) ||
-          (p.nicknames && p.nicknames.toLowerCase().includes(q))
-      ).slice(0, 8)
-    );
-  }, [search, people]);
-
-  const buildHierarchy = useCallback((): HierarchyNode | null => {
-    if (people.length === 0) return null;
-
-    const map = new Map<string, TreePerson>();
-    people.forEach((p) => map.set(p.id, p));
-
-    // Find roots (people with no parents)
-    const roots = people.filter((p) => p.parents.length === 0);
-    // Pick the first male root as the main ancestor, or just the first root
-    const mainRoot = roots.find((r) => r.gender === "M") || roots[0];
-    if (!mainRoot) return null;
-
-    const visited = new Set<string>();
-
-    function buildNode(person: TreePerson): HierarchyNode {
-      visited.add(person.id);
-
-      // Find partner
-      const partnerInfo = person.partners[0];
-      const partner = partnerInfo ? map.get(partnerInfo.id) : undefined;
-      if (partner) visited.add(partner.id);
-
-      // Find biological children (children shared between person and partner, or just person's children)
-      const childIds = new Set(person.children);
-      const uniqueChildren: TreePerson[] = [];
-      const seenChildIds = new Set<string>();
-
-      childIds.forEach((cid) => {
-        if (!seenChildIds.has(cid) && !visited.has(cid)) {
-          const child = map.get(cid);
-          if (child) {
-            seenChildIds.add(cid);
-            uniqueChildren.push(child);
-          }
-        }
-      });
-
-      // Sort children by lineage code
-      uniqueChildren.sort((a, b) => {
-        if (a.lineageCode && b.lineageCode) return a.lineageCode.localeCompare(b.lineageCode, undefined, { numeric: true });
-        return 0;
-      });
-
-      return {
-        person,
-        partner,
-        children: uniqueChildren.length > 0 ? uniqueChildren.map((c) => buildNode(c)) : undefined,
-      };
-    }
-
-    return buildNode(mainRoot);
-  }, [people]);
-
-  // Render the tree with D3
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg || people.length === 0) return;
-
-    const hierarchy = buildHierarchy();
-    if (!hierarchy) return;
-
-    const root = d3.hierarchy(hierarchy, (d) => d.children);
-    const treeLayout = d3.tree<HierarchyNode>().nodeSize([LAYOUT_DX, LAYOUT_DY]);
-    treeLayout(root);
-
-    const svgSel = d3.select(svg);
-    svgSel.selectAll("g.tree-root").remove();
-
-    const g = svgSel.append("g").attr("class", "tree-root");
-
-    // Zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.15, 2])
-      .on("zoom", (event) => {
-        g.attr("transform", event.transform.toString());
-      });
-
-    svgSel.call(zoom);
-    zoomRef.current = zoom;
-
-    // Center the tree
-    const bounds = svg.getBoundingClientRect();
-    // Start with root at top-left with some margin
-    const initialTransform = d3.zoomIdentity
-      .translate(bounds.width / 2, 100)
-      .scale(0.8);
-    svgSel.call(zoom.transform, initialTransform);
-
-    // Draw links
-    const links = root.links();
-    g.selectAll("path.tree-link")
-      .data(links)
-      .join("path")
-      .attr("class", "tree-link")
-      .attr("d", (d) => {
-        // d.x is horizontal, d.y is vertical
-        const sx = d.source.x!;
-        const sy = d.source.y! + (d.source.data.partner ? NODE_H * 1.5 + PARTNER_GAP : NODE_H / 2); // exit from bottom of couple
-        const tx = d.target.x!;
-        const ty = d.target.y! - NODE_H / 2; // enter at top of child
-        const my = (sy + ty) / 2;
-        return `M${sx},${sy} V${my} H${tx} V${ty}`;
-      });
-
-    // Draw node groups
-    const nodeGroups = g.selectAll("g.tree-node-group")
-      .data(root.descendants())
-      .join("g")
-      .attr("class", "tree-node-group");
-
-    // 1. Draw main person card
-    const personNodes = nodeGroups.append("g")
-      .attr("class", (d) => {
-        const gen = d.data.person.gender;
-        return `tree-node ${gen === "M" ? "tree-node-male" : gen === "F" ? "tree-node-female" : ""}`;
-      })
-      .attr("transform", (d) => {
-        // Stack main person on top
-        const yOffset = d.data.partner ? -(NODE_H + PARTNER_GAP / 2) : -NODE_H / 2;
-        return `translate(${d.x! - NODE_W / 2},${d.y! + yOffset})`;
-      })
-      .on("click", (_, d) => onSelectPerson(d.data.person));
-
-    personNodes.append("rect")
-      .attr("class", "tree-node-card")
-      .attr("width", NODE_W)
-      .attr("height", NODE_H);
-
-    personNodes.append("rect")
-      .attr("width", 3)
-      .attr("height", NODE_H - 12)
-      .attr("x", 6)
-      .attr("y", 6)
-      .attr("rx", 2)
-      .attr("fill", (d) => d.data.person.gender === "M" ? "var(--color-male)" : d.data.person.gender === "F" ? "var(--color-female)" : "var(--color-text-muted)")
-      .attr("opacity", 0.6);
-
-    personNodes.append("text")
-      .attr("class", "tree-node-name")
-      .attr("x", 16)
-      .attr("y", 22)
-      .attr("font-size", "16px")
-      .attr("font-weight", "700")
-      .text((d) => {
-        const p = d.data.person;
-        const name = `${p.firstName} ${p.lastName}`;
-        return name.length > 20 ? name.slice(0, 18) + "…" : name;
-      });
-
-    personNodes.append("text")
-      .attr("class", "tree-node-info")
-      .attr("x", 16)
-      .attr("y", 38)
-      .attr("font-size", "11px")
-      .text((d) => {
-        const p = d.data.person;
-        if (p.nicknames) return `"${p.nicknames.split(",")[0]}"`;
-        if (p.occupation) return p.occupation.slice(0, 25);
-        return "";
-      });
-
-    personNodes.append("text")
-      .attr("class", "tree-node-info")
-      .attr("x", NODE_W - 8)
-      .attr("y", 14)
-      .attr("text-anchor", "end")
-      .attr("fill", "var(--color-accent)")
-      .attr("font-size", "9px")
-      .text((d) => d.data.person.lineageCode || "");
-
-    // 2. Draw partner card (only if partner exists)
-    const partnerNodes = nodeGroups.filter((d) => !!d.data.partner)
-      .append("g")
-      .attr("class", (d) => {
-        const gen = d.data.partner!.gender;
-        return `tree-node ${gen === "M" ? "tree-node-male" : gen === "F" ? "tree-node-female" : ""}`;
-      })
-      .attr("transform", (d) => `translate(${d.x! - NODE_W / 2},${d.y! + PARTNER_GAP / 2})`)
-      .on("click", (_, d) => onSelectPerson(d.data.partner!));
-
-    partnerNodes.append("rect")
-      .attr("class", "tree-node-card")
-      .attr("width", NODE_W)
-      .attr("height", NODE_H);
-
-    partnerNodes.append("rect")
-      .attr("width", 3)
-      .attr("height", NODE_H - 12)
-      .attr("x", 6)
-      .attr("y", 6)
-      .attr("rx", 2)
-      .attr("fill", (d) => d.data.partner!.gender === "M" ? "var(--color-male)" : d.data.partner!.gender === "F" ? "var(--color-female)" : "var(--color-text-muted)")
-      .attr("opacity", 0.6);
-
-    partnerNodes.append("text")
-      .attr("class", "tree-node-name")
-      .attr("x", 16)
-      .attr("y", 22)
-      .attr("font-size", "16px")
-      .attr("font-weight", "700")
-      .text((d) => {
-        const p = d.data.partner!;
-        const name = `${p.firstName} ${p.lastName}`;
-        return name.length > 20 ? name.slice(0, 18) + "…" : name;
-      });
-
-    partnerNodes.append("text")
-      .attr("class", "tree-node-info")
-      .attr("x", 16)
-      .attr("y", 38)
-      .attr("font-size", "11px")
-      .text((d) => {
-        const p = d.data.partner!;
-        if (p.nicknames) return `"${p.nicknames.split(",")[0]}"`;
-        if (p.occupation) return p.occupation.slice(0, 25);
-        return "";
-      });
-
-    // Render lineage/generation code for partner nodes too!
-    partnerNodes.append("text")
-      .attr("class", "tree-node-info")
-      .attr("x", NODE_W - 8)
-      .attr("y", 14)
-      .attr("text-anchor", "end")
-      .attr("fill", "var(--color-accent)")
-      .attr("font-size", "9px")
-      .text((d) => d.data.partner!.lineageCode || "");
-
-    // 3. Draw connecting lines between partner and main person
-    nodeGroups.filter((d) => !!d.data.partner)
-      .append("line")
-      .attr("class", "tree-partner-link")
-      .attr("x1", (d) => d.x!)
-      .attr("y1", (d) => d.y! - PARTNER_GAP / 2)
-      .attr("x2", (d) => d.x!)
-      .attr("y2", (d) => d.y! + PARTNER_GAP / 2);
-  }, [people, buildHierarchy, onSelectPerson]);
-
-  const handleZoom = (direction: "in" | "out" | "reset") => {
-    const svg = svgRef.current;
-    if (!svg || !zoomRef.current) return;
-    const sel = d3.select(svg);
-    if (direction === "in") sel.transition().call(zoomRef.current.scaleBy, 1.3);
-    else if (direction === "out") sel.transition().call(zoomRef.current.scaleBy, 0.7);
-    else {
-      const bounds = svg.getBoundingClientRect();
-      sel.transition().call(
-        zoomRef.current.transform,
-        d3.zoomIdentity.translate(bounds.width / 2, 100).scale(0.8)
-      );
-    }
-  };
-
-  const handlePrint = () => {
-    const svg = svgRef.current;
-    if (svg && zoomRef.current) {
-      // Find bounding box of the g.tree-root
-      const g = svg.querySelector("g.tree-root") as SVGGElement;
-      if (g) {
-        const bbox = g.getBBox();
-        // Scale to 1 and center horizontally
-        const bounds = svg.getBoundingClientRect();
-        d3.select(svg).call(
-          zoomRef.current.transform,
-          d3.zoomIdentity.translate(-bbox.x + bounds.width / 2 - bbox.width / 2, -bbox.y + 50).scale(1)
-        );
-      }
-    }
-    // Small timeout to allow transform to apply
-    setTimeout(() => {
-      window.print();
-    }, 100);
-  };
-
-  const focusOnPerson = (person: TreePerson) => {
-    setSearch("");
-    setSearchResults([]);
-    onSelectPerson(person);
-  };
-
-  const generations = new Set(people.map((p) => p.generation));
+  const { units, unplaced } = useMemo(() => buildFamilyUnits(people), [people]);
+  const query = search.trim().toLocaleLowerCase();
+  const results = query
+    ? people.filter((person) =>
+        [person.firstName, person.lastName, person.nicknames, person.lineageCode]
+          .filter(Boolean)
+          .some((value) => value!.toLocaleLowerCase().includes(query)),
+      ).slice(0, 12)
+    : [];
+  const generationCount = Math.max(0, ...people.map((person) => person.generation));
 
   if (people.length === 0) {
     return (
-      <div className="loading">
-        <div className="loading-text" style={{ fontSize: "1.2rem", opacity: 0.8 }}>
-          No family members found in database.
-        </div>
-        <p style={{ fontSize: "0.9rem", color: "var(--color-text-muted)", marginTop: "0.5rem" }}>
-          Please verify that the database is properly seeded on the server.
-        </p>
+      <div className="loading" role="status">
+        <p className="loading-text">No family members were found.</p>
+        <p>Check that the family database has been seeded.</p>
       </div>
     );
   }
 
   return (
-    <div className="tree-container">
-      {/* Search */}
-      <div className="search-container">
-        <span className="search-icon">🔍</span>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search family members…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          id="family-search"
-        />
-        {searchResults.length > 0 && (
-          <div className="search-results">
-            {searchResults.map((p) => (
-              <div
-                key={p.id}
-                className="search-result-item"
-                onClick={() => focusOnPerson(p)}
-              >
-                <div>
-                  <div className="search-result-name">
-                    {p.firstName} {p.lastName}
-                  </div>
-                  <div className="search-result-info">
-                    {p.nicknames && `"${p.nicknames.split(",")[0]}"`}
-                    {p.nicknames && p.lineageCode && " · "}
-                    {p.lineageCode}
-                  </div>
-                </div>
-              </div>
-            ))}
+    <section className="poster-page" aria-labelledby="poster-title">
+      <div className="poster-toolbar" aria-label="Family tree tools">
+        <div className="poster-search">
+          <label htmlFor="family-search">Find a family member</label>
+          <input
+            id="family-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            autoComplete="off"
+            aria-describedby="search-help"
+          />
+          <span id="search-help">Search by name, nickname, or lineage number.</span>
+          {query && (
+            <div className="poster-search-results" aria-live="polite">
+              <p>{results.length ? `${results.length} matching people` : "No matching people"}</p>
+              {results.length > 0 && (
+                <ul>
+                  {results.map((person) => (
+                    <li key={person.id}>
+                      <button type="button" onClick={() => { onSelectPerson(person); setSearch(""); }}>
+                        {fullName(person)}
+                        {person.nicknames && ` (${person.nicknames.split(",").join(" / ")})`}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="poster-actions">
+          <button type="button" className="poster-print-button" onClick={() => window.print()}>
+            Print / save PDF
+          </button>
+          <p>A0 landscape at 100% scale gives the clearest wall poster.</p>
+        </div>
+      </div>
+
+      <div className="family-poster" id="family-poster">
+        <header className="poster-heading">
+          <p className="poster-kicker">The Domingo Bautista–Pastora Cayabyab Clan</p>
+          <h1 id="poster-title">Our Lineage</h1>
+          <p className="poster-date">Family record as of December 10, 2024</p>
+          <div className="poster-summary" aria-label="Family tree summary">
+            <span><strong>{people.length}</strong> people named in the scan</span>
+            <span><strong>{generationCount}</strong> generations after the founding couples</span>
+            <span><strong>{units.length}</strong> family groups</span>
           </div>
-        )}
-      </div>
+        </header>
 
-      {/* Tree SVG */}
-      <svg ref={svgRef} className="tree-svg" id="family-tree-svg" />
+        <aside className="poster-key" aria-label="Relationship key">
+          <span><strong>×</strong> married</span>
+          <span><strong>Partner</strong> live-in or common-law partner</span>
+          <span><strong>Divorced</strong> divorced</span>
+          <span><strong>Children</strong> listed directly below their parents</span>
+        </aside>
 
-      {/* Zoom controls */}
-      <div className="tree-controls">
-        <button onClick={() => handleZoom("in")} title="Zoom in">+</button>
-        <button onClick={() => handleZoom("out")} title="Zoom out">−</button>
-        <button onClick={() => handleZoom("reset")} title="Reset view">⟲</button>
-        <button onClick={handlePrint} title="Print tree">🖨️</button>
-      </div>
+        <div className="poster-units" aria-label="Family groups">
+          {units.map((unit) => {
+            const generation = Math.min(...unit.adults.map((person) => person.generation));
+            const connector = unit.type === "married" ? "×" : unit.type === "divorced" ? "Divorced" : unit.type === "livein" ? "Partner" : "Other parent not recorded";
 
-      {/* Stats */}
-      <div className="stats-bar">
-        <div className="stat-item">
-          <span className="stat-value">{people.length}</span>
-          <span className="stat-label">Members</span>
+            return (
+              <article className={`family-unit generation-${generation}`} key={unit.key}>
+                <p className="family-unit-meta">
+                  {generation === 0 ? "Founding couple" : `Generation ${generation}`}
+                  {unit.adults[0].lineageCode && ` · ${unit.adults[0].lineageCode}`}
+                </p>
+                <h2>
+                  <PersonName person={unit.adults[0]} onSelect={onSelectPerson} />
+                  <span className="family-connector">{connector}</span>
+                  {unit.adults[1] && <PersonName person={unit.adults[1]} onSelect={onSelectPerson} />}
+                </h2>
+                {unit.children.length > 0 && (
+                  <div className="family-children">
+                    <strong>Children</strong>
+                    <ul>
+                      {unit.children.map((child) => (
+                        <li key={child.id}><PersonName person={child} onSelect={onSelectPerson} /></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+
+          {unplaced.length > 0 && (
+            <article className="family-unit family-unit-unplaced">
+              <p className="family-unit-meta">Named in the source; relationship not recorded</p>
+              <h2>Unplaced relatives</h2>
+              <ul className="unplaced-people">
+                {unplaced.map((person) => (
+                  <li key={person.id}><PersonName person={person} onSelect={onSelectPerson} /></li>
+                ))}
+              </ul>
+            </article>
+          )}
         </div>
-        <div className="stat-item">
-          <span className="stat-value">{generations.size}</span>
-          <span className="stat-label">Generations</span>
-        </div>
+
+        <footer className="poster-footer">
+          <p>Compiled by Ofelia K. Bautista, Teodora B. Dequina, Alice F. Taroy, Lillie V. Cruz, and Salvador C. Bautista.</p>
+          <p>Names with an unknown surname are printed exactly as recorded in the source.</p>
+        </footer>
       </div>
-    </div>
+    </section>
   );
 }

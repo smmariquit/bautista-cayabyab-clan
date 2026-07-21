@@ -35,15 +35,15 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="loading">
-        <div className="loading-spinner" />
+      <div className="loading" role="status" aria-live="polite">
+        <div className="loading-spinner" aria-hidden="true" />
         <div className="loading-text">Loading family tree…</div>
       </div>
     );
   }
 
   return (
-    <main>
+    <main id="main-content" tabIndex={-1}>
       <FamilyTree people={allPeople} onSelectPerson={setSelectedPerson} />
       {selectedPerson && (
         <PersonDetail

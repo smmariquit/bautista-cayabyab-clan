@@ -57,11 +57,11 @@ export default function Header() {
           </a>
 
           <div className="header-right">
-            <nav className="header-nav">
-              <a href="/" className={pathname === "/" ? "active" : ""}>
+            <nav className="header-nav" aria-label="Primary navigation">
+              <a href="/" className={pathname === "/" ? "active" : ""} aria-current={pathname === "/" ? "page" : undefined}>
                 Tree
               </a>
-              <a href="/list" className={pathname === "/list" ? "active" : ""}>
+              <a href="/list" className={pathname === "/list" ? "active" : ""} aria-current={pathname === "/list" ? "page" : undefined}>
                 List
               </a>
             </nav>
@@ -89,11 +89,11 @@ export default function Header() {
       {/* Login Modal */}
       {isLoginOpen && (
         <div className="modal-overlay" onClick={() => setIsLoginOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setIsLoginOpen(false)}>
-              ✕
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="login-title" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setIsLoginOpen(false)} aria-label="Close login dialog">
+              <span aria-hidden="true">✕</span>
             </button>
-            <h2 className="modal-title">Clan Editor Login</h2>
+            <h2 className="modal-title" id="login-title">Clan Editor Login</h2>
             <p className="modal-desc">
               Log in to modify biographies, add family members, and manage relationships.
             </p>
@@ -127,7 +127,7 @@ export default function Header() {
                 />
               </div>
 
-              {errorMsg && <div className="form-error">{errorMsg}</div>}
+              {errorMsg && <div className="form-error" role="alert">{errorMsg}</div>}
 
               <button type="submit" className="form-submit-btn" disabled={isSubmitting}>
                 {isSubmitting ? "Logging in..." : "Log In"}

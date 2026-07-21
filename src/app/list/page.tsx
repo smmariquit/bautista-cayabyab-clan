@@ -188,7 +188,7 @@ export default function ListPage() {
   }
 
   return (
-    <main className="list-page-container">
+    <main className="list-page-container" id="main-content" tabIndex={-1}>
       <div className="list-header-section">
         <h1 className="list-title">Bautista–Cayabyab Clan Descendants</h1>
         <p className="list-desc">

@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Bautista-Cayabyab Family Tree",
-  description: "Interactive genealogy of the Domingo Bautista-Pastora Cayabyab Clan — Our Lineage",
+  description: "Printable wall genealogy of the Domingo Bautista-Pastora Cayabyab Clan",
 };
 
 import { AuthProvider } from "@/context/AuthContext";
@@ -19,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <a className="skip-link" href="#main-content">Skip to family tree</a>
         <AuthProvider>
           <Header />
           {children}
@@ -27,4 +28,3 @@ export default function RootLayout({
     </html>
   );
 }
-

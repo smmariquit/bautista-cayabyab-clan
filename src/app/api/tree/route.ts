@@ -30,6 +30,7 @@ export async function GET() {
         firstName: p.firstName,
         lastName: p.lastName,
         nicknames: p.nicknames,
+        suffix: p.suffix,
         gender: p.gender,
         generation: p.generation,
         lineageCode: p.lineageCode,
