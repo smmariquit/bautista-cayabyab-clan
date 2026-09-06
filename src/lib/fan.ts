@@ -1,6 +1,6 @@
 // Layout for the descendant fan: one node per union, angles sized to the room each label needs.
 import type { TreePerson } from "@/lib/types";
-import { UNION_MARK, unionsOf, type Index } from "@/lib/family";
+import { fullName, nicknames, UNION_MARK, unionsOf, type Index } from "@/lib/family";
 
 /** Sheet geometry in millimetres: A0 landscape inside 12mm margins. */
 export const SHEET = { w: 1165, h: 817 };
@@ -13,6 +13,9 @@ const BASE_FONT = [9, 6.2, 4.9, 4.2, 3.7, 3.4];
 const LINE_HEIGHT = 1.1;
 const PAD = 2;
 const MAX_SCALE = 1.35;
+/** Average glyph width of Public Sans bold, in em, and the clearance kept before the next ring. */
+const CHAR_EM = 0.62;
+const RADIAL_CLEARANCE = 12;
 
 export type FanNode = {
   person: TreePerson;
@@ -22,6 +25,8 @@ export type FanNode = {
   depth: number;
   branch: number;
   children: FanNode[];
+  /** Label size in mm, capped by both the angle available and the ring's depth. */
+  font: number;
   need: number;
   x0: number;
   x1: number;
@@ -39,6 +44,13 @@ export type FanLayout = {
   notes: Note[];
   noteOf: Map<string, number>;
 };
+
+export const labelOf = (p: TreePerson, letter?: string) =>
+  `${fullName(p)}${letter ? ` (${letter})` : ""}${nicknames(p) ? ` (${nicknames(p)})` : ""}`;
+
+/** Characters a label line takes on the fan, superscript and dagger included. */
+const labelChars = (p: TreePerson, letter?: string) =>
+  labelOf(p, letter).length + (p.deathDate ? 2 : 0) + (noteText(p) ? 3 : 0);
 
 /** The footnote text for a person, or empty. Mirrors the source's per-family footnotes. */
 export const noteText = (p: TreePerson) =>
@@ -58,12 +70,14 @@ export function layoutFan(index: Index, branches: TreePerson[]): FanLayout {
     const unions = unionsOf(index, person);
     const make = (partner: TreePerson | undefined, mark: string, letter: string | undefined, kids: TreePerson[]) => {
       const children = kids.flatMap((c) => build(c, depth + 1, branch, font));
-      const own = ((partner ? 2 : 1) * font(depth) * LINE_HEIGHT + PAD) / (rIn(depth) + 5);
+      const chars = Math.max(labelChars(person, letter), partner ? labelChars(partner) + 2 : 0);
+      const size = Math.min(font(depth), (ringW - RADIAL_CLEARANCE) / (CHAR_EM * chars));
+      const own = ((partner ? 2 : 1) * size * LINE_HEIGHT + PAD) / (rIn(depth) + 5);
       const need = Math.max(
         own,
         children.reduce((s, c) => s + c.need, 0),
       );
-      return { person, partner, mark, letter, depth, branch, children, need, x0: 0, x1: 0 };
+      return { person, partner, mark, letter, depth, branch, children, font: size, need, x0: 0, x1: 0 };
     };
     if (unions.length === 0) return [make(undefined, "", undefined, [])];
     // The source repeats a person as 1.8.1.a, 1.8.1.b for each partner; keep that convention.

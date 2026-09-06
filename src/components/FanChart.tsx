@@ -3,8 +3,8 @@
 import { arc } from "d3";
 import type { KeyboardEvent } from "react";
 import type { TreePerson } from "@/lib/types";
-import { fullName, nicknames } from "@/lib/family";
-import { CX, CY, R_HUB, R_OUT, SHEET, type FanLayout, type FanNode } from "@/lib/fan";
+import { fullName } from "@/lib/family";
+import { CX, CY, labelOf as label, R_HUB, R_OUT, SHEET, type FanLayout, type FanNode } from "@/lib/fan";
 
 const RING_NAMES = [
   "children",
@@ -13,9 +13,6 @@ const RING_NAMES = [
   "great-great-grandchildren",
   "fifth generation",
 ];
-
-const label = (p: TreePerson, letter?: string) =>
-  `${fullName(p)}${letter ? ` (${letter})` : ""}${nicknames(p) ? ` (${nicknames(p)})` : ""}`;
 
 interface FanChartProps {
   layout: FanLayout;
@@ -57,7 +54,7 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
   );
   const lineage = (p: TreePerson, word: string) => {
     const parents = parentsOf(p);
-    return parents.length ? `${p.firstName}, ${word} of ${parents.map(fullName).join(" and ")}` : "";
+    return parents.length ? `${word} of ${parents.map(fullName).join(" and ")}` : "";
   };
 
   return (
@@ -68,8 +65,7 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
       aria-label="Descendants of Domingo Bautista and Pastora Cayabyab, drawn as a fan"
     >
       <defs>
-        <path id="hub-arc-left" d={`M ${-(R_HUB - 12)} 0 A ${R_HUB - 12} ${R_HUB - 12} 0 0 1 0 ${-(R_HUB - 12)}`} />
-        <path id="hub-arc-right" d={`M 0 ${-(R_HUB - 12)} A ${R_HUB - 12} ${R_HUB - 12} 0 0 1 ${R_HUB - 12} 0`} />
+        <path id="hub-arc" d={semicircle(R_HUB - 12)} />
       </defs>
 
       <g transform={`translate(${CX} ${CY})`}>
@@ -113,14 +109,14 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
             </text>
           );
         })}
-        <g className="hub-arc" fontSize={3.2}>
+        <g className="hub-arc" fontSize={3}>
           <text>
-            <textPath href="#hub-arc-left" startOffset="10%">
+            <textPath href="#hub-arc" startOffset="4%">
               {lineage(domingo, "son")}
             </textPath>
           </text>
-          <text>
-            <textPath href="#hub-arc-right" startOffset="6%">
+          <text textAnchor="end">
+            <textPath href="#hub-arc" startOffset="96%">
               {lineage(pastora, "daughter")}
             </textPath>
           </text>
@@ -140,7 +136,7 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
               key={`l${key(n)}`}
               className="fan-node"
               transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${deg.toFixed(2)})`}
-              fontSize={fontAt(n.depth).toFixed(2)}
+              fontSize={n.font.toFixed(2)}
               textAnchor={left ? "end" : "start"}
             >
               <text className="fan-name" dy={n.partner ? "-0.18em" : "0.35em"} {...nameProps(n.person)}>
