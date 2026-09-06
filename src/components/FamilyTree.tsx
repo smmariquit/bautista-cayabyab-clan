@@ -261,7 +261,7 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
               <li key={note.n}>
                 {(i === 0 || layout.notes[i - 1].branch !== note.branch) && (
                   <span className="note-head">
-                    {note.branch} · {branches[note.branch - 1]?.firstName}
+                    {note.branch} {branches[note.branch - 1]?.firstName}
                   </span>
                 )}
                 <b>{note.n}</b> <span className="note-name">{fullName(note.person)}.</span> {note.text}

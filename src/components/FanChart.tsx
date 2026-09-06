@@ -22,7 +22,7 @@ interface FanChartProps {
 }
 
 export default function FanChart({ layout, root, parentsOf, onSelect }: FanChartProps) {
-  const { nodes, top, rings, fontAt, rIn, noteOf } = layout;
+  const { nodes, top, rings, rIn, noteOf } = layout;
   const [domingo, pastora] = root;
 
   const wedge = arc<{ r0: number; r1: number; a0: number; a1: number }>()
@@ -54,7 +54,7 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
   );
   const lineage = (p: TreePerson, word: string) => {
     const parents = parentsOf(p);
-    return parents.length ? `${word} of ${parents.map(fullName).join(" and ")}` : "";
+    return parents.length ? `${p.firstName}, ${word} of ${parents.map(fullName).join(" and ")}` : "";
   };
 
   return (
@@ -64,10 +64,6 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
       role="img"
       aria-label="Descendants of Domingo Bautista and Pastora Cayabyab, drawn as a fan"
     >
-      <defs>
-        <path id="hub-arc" d={semicircle(R_HUB - 12)} />
-      </defs>
-
       <g transform={`translate(${CX} ${CY})`}>
         {nodes.map((n) => (
           <path
@@ -109,18 +105,6 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
             </text>
           );
         })}
-        <g className="hub-arc" fontSize={3}>
-          <text>
-            <textPath href="#hub-arc" startOffset="4%">
-              {lineage(domingo, "son")}
-            </textPath>
-          </text>
-          <text textAnchor="end">
-            <textPath href="#hub-arc" startOffset="96%">
-              {lineage(pastora, "daughter")}
-            </textPath>
-          </text>
-        </g>
       </g>
 
       <g className="fan-labels">
@@ -155,14 +139,20 @@ export default function FanChart({ layout, root, parentsOf, onSelect }: FanChart
       </g>
 
       <g className="fan-root" transform={`translate(${CX} ${CY})`} textAnchor="middle">
-        <text className="fan-name" y={-42} fontSize={fontAt(0)} {...nameProps(domingo)}>
+        <text className="fan-name" y={-52} fontSize={8.5} {...nameProps(domingo)}>
           {fullName(domingo)}
         </text>
-        <text className="fan-name" y={-28} fontSize={fontAt(0)} {...nameProps(pastora)}>
+        <text className="fan-name" y={-40} fontSize={8.5} {...nameProps(pastora)}>
           × {fullName(pastora)}
         </text>
-        <text y={-16} fontSize={3.4} className="fan-root-note">
-          {new Set(top.map((n) => n.branch)).size} children · {nodes.filter((n) => !n.children.length).length} lines fan
+        <text y={-30} fontSize={3} className="fan-root-note">
+          {lineage(domingo, "son")}
+        </text>
+        <text y={-25} fontSize={3} className="fan-root-note">
+          {lineage(pastora, "daughter")}
+        </text>
+        <text y={-15} fontSize={3.4} className="fan-root-note">
+          {new Set(top.map((n) => n.branch)).size} children, {nodes.filter((n) => !n.children.length).length} lines fan
           out above
         </text>
         <text y={-7} fontSize={3} className="fan-root-quote">

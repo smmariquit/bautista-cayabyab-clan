@@ -1469,11 +1469,6 @@ body {
   fill: var(--poster-ink);
 }
 
-.hub-arc text {
-  fill: var(--poster-paper);
-  opacity: 0.85;
-}
-
 .ring-line {
   fill: none;
   stroke: var(--poster-ink-2);
