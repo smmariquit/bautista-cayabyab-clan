@@ -1615,9 +1615,9 @@ body {
 
 .panel-notes {
   left: calc(700 * var(--mm));
-  top: calc(102 * var(--mm));
+  top: calc(90 * var(--mm));
   width: calc(443 * var(--mm));
-  height: calc(140 * var(--mm));
+  height: calc(154 * var(--mm));
   overflow: hidden;
 }
 
@@ -1629,8 +1629,8 @@ body {
   columns: 3;
   column-gap: calc(6 * var(--mm));
   list-style: none;
-  font-size: calc(3.05 * var(--mm));
-  line-height: 1.22;
+  font-size: calc(3.5 * var(--mm));
+  line-height: 1.2;
   color: var(--poster-ink-2);
 }
 
@@ -1691,12 +1691,12 @@ body {
 
 .panel-key {
   left: calc(700 * var(--mm));
-  top: calc(72 * var(--mm));
+  top: calc(68 * var(--mm));
   width: calc(443 * var(--mm));
-  padding: calc(2.5 * var(--mm)) calc(4 * var(--mm));
+  padding: calc(2 * var(--mm)) calc(4 * var(--mm));
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: calc(1 * var(--mm)) calc(4 * var(--mm));
+  gap: calc(0.6 * var(--mm)) calc(4 * var(--mm));
   list-style: none;
   border: 1px solid var(--poster-ink);
   font-size: calc(3.4 * var(--mm));

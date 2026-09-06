@@ -57,7 +57,11 @@ export const noteText = (p: TreePerson) =>
   [p.occupation, p.education, p.bio]
     .filter((s): s is string => Boolean(s))
     .join(". ")
-    .replace(/\.\./g, ".");
+    .replace(/\.\./g, ".")
+    // Reading caveats about the scan belong in the record, not on the wall.
+    .split(/(?<=\.)\s+/)
+    .filter((sentence) => !/^The (source|detailed entry)/.test(sentence))
+    .join(" ");
 
 export function layoutFan(index: Index, branches: TreePerson[]): FanLayout {
   const depthOf = (p: TreePerson): number => 1 + Math.max(0, ...index.childrenOf(p).map(depthOf));
