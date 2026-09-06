@@ -1,11 +1,11 @@
 // src/app/layout.tsx
 
 import type { Metadata } from "next";
-import { Public_Sans, Young_Serif } from "next/font/google";
+import { Big_Shoulders, Public_Sans } from "next/font/google";
 import "./globals.css";
 
 const body = Public_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-const display = Young_Serif({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" });
+const display = Big_Shoulders({ subsets: ["latin"], weight: "800", variable: "--font-display", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Bautista-Cayabyab Family Tree",
@@ -23,8 +23,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${body.variable} ${display.variable}`}>
       <head>
-        {/* Kept inline: the CSS pipeline drops top-level @page rules. */}
-        <style>{"@page { size: A0 landscape; margin: 12mm; }"}</style>
+        {/* Inline because the CSS pipeline drops @page; explicit mm because Chromium ignores "A0 landscape" here. */}
+        <style>{"@page { size: 1189mm 841mm; margin: 12mm; }"}</style>
       </head>
       <body>
         <a className="skip-link" href="#main-content">

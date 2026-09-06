@@ -1,7 +1,7 @@
 // Exercises the graph helpers the poster is built from.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fullName, indexPeople, reachableFrom, unionsOf } from "../src/components/FamilyTree";
+import { fullName, indexPeople, reachableFrom, unionsOf } from "../src/lib/family";
 import type { TreePerson } from "../src/lib/types";
 
 const person = (id: string, over: Partial<TreePerson> = {}): TreePerson => ({

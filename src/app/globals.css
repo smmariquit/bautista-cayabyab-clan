@@ -1267,25 +1267,24 @@ body {
   }
 }
 /* ─── WALL POSTER ───
- * Hallmark · macrostructure: Map / Diagram · tone: archival · anchor hue: oxblood 25
- * Hallmark · pre-emit critique: P4 H5 E4 S5 R5 V4
- * One composition: ancestry ladder on top, seven descendant branches as an indented
- * chart with drawn connectors, the wider lines along the bottom. Print target is A0
- * landscape; the screen view is the same sheet at a scrollable width.
+ * Hallmark · macrostructure: Map / Diagram · tone: one-ink chart print · anchor hue: prussian 255
+ * Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4
+ * The sheet is a fixed A0 landscape canvas measured in millimetres (--mm). A half-disc fan
+ * of descendants rises from Domingo and Pastora at the bottom edge; the corners hold the
+ * ancestry and the collateral lines. One blue ink for everything, vermilion for the dead.
  */
 :root {
-  --poster-paper: oklch(99% 0 0);
-  --poster-ink: oklch(18% 0.01 25);
-  --poster-ink-2: oklch(38% 0.01 25);
-  --poster-rule: oklch(72% 0.01 25);
-  --poster-rule-soft: oklch(88% 0.005 25);
-  --poster-accent: oklch(42% 0.14 25);
-  --poster-accent-ink: oklch(99% 0 0);
-  --poster-focus: oklch(55% 0.2 250);
-  --font-poster-display: var(--font-display), "Young Serif", Georgia, serif;
+  --poster-paper: oklch(99.2% 0.003 255);
+  --poster-ink: oklch(24% 0.06 258);
+  --poster-ink-2: oklch(42% 0.07 255);
+  --poster-rule: oklch(78% 0.04 255);
+  --poster-wedge-a: oklch(93.5% 0.028 255);
+  --poster-wedge-b: oklch(88% 0.05 255);
+  --poster-dead: oklch(54% 0.19 32);
+  --poster-focus: oklch(60% 0.2 32);
+  --font-poster-display: var(--font-display), "Big Shoulders", Impact, sans-serif;
   --font-poster-body: var(--font-body), "Public Sans", "Helvetica Neue", Arial, sans-serif;
-  --tree-indent: 1.1rem;
-  --tree-gap: 0.42rem;
+  --sheet-w: 2400px;
   --dur-fast: 120ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1293,14 +1292,15 @@ body {
 .poster-page {
   min-height: calc(100vh - 64px);
   padding: 24px;
-  background: oklch(93% 0.005 25);
+  overflow-x: auto;
+  background: oklch(91% 0.012 255);
   font-family: var(--font-poster-body);
 }
 
 .poster-toolbar {
   position: relative;
   z-index: 20;
-  max-width: 1800px;
+  max-width: 1400px;
   margin: 0 auto 20px;
   padding: 16px 20px;
   display: flex;
@@ -1337,7 +1337,8 @@ body {
 
 .poster-search input:focus-visible,
 .poster-print-button:focus-visible,
-.person:focus-visible {
+.person:focus-visible,
+.fan-name:focus-visible {
   outline: 3px solid var(--poster-focus);
   outline-offset: 2px;
 }
@@ -1380,7 +1381,7 @@ body {
   color: var(--poster-ink);
   background: transparent;
   border: 0;
-  border-top: 1px solid var(--poster-rule-soft);
+  border-top: 1px solid var(--poster-wedge-b);
   text-align: left;
   font: inherit;
   font-weight: 600;
@@ -1389,8 +1390,8 @@ body {
 
 .poster-search-results button:hover,
 .poster-search-results button:focus-visible {
-  color: var(--poster-accent-ink);
-  background: var(--poster-accent);
+  color: var(--poster-paper);
+  background: var(--poster-ink);
 }
 
 .poster-actions {
@@ -1402,9 +1403,9 @@ body {
 .poster-print-button {
   min-height: 48px;
   padding: 10px 22px;
-  color: var(--poster-accent-ink);
-  background: var(--poster-accent);
-  border: 1px solid var(--poster-accent);
+  color: var(--poster-paper);
+  background: var(--poster-ink);
+  border: 1px solid var(--poster-ink);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -1414,7 +1415,7 @@ body {
 }
 
 .poster-print-button:hover {
-  color: var(--poster-accent);
+  color: var(--poster-ink);
   background: var(--poster-paper);
 }
 
@@ -1422,118 +1423,146 @@ body {
   transform: translateY(1px);
 }
 
-/* The sheet */
-.poster {
-  max-width: 1800px;
+/* ── The sheet: 1165 × 817 mm, everything positioned in --mm ── */
+.sheet {
+  --mm: calc(var(--sheet-w) / 1165);
+  position: relative;
+  width: var(--sheet-w);
+  height: calc(817 * var(--mm));
   margin: 0 auto;
-  padding: 40px 44px 28px;
+  overflow: hidden;
   color: var(--poster-ink);
   background: var(--poster-paper);
-  border: 1px solid var(--poster-rule);
+  font-size: calc(3.6 * var(--mm));
   line-height: 1.3;
+  box-shadow: 0 2px 0 var(--poster-rule);
 }
 
-.poster-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) auto;
-  grid-template-areas: "title facts" "title key";
-  gap: 6px 40px;
-  align-items: end;
-  padding-bottom: 20px;
-  border-bottom: 3px solid var(--poster-ink);
+.fan {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-poster-body);
 }
 
-.poster-title-block {
-  grid-area: title;
-  min-width: 0;
+.wedge {
+  stroke: var(--poster-paper);
+  stroke-width: 0.5;
 }
 
-.poster-head h1 {
-  font-family: var(--font-poster-display);
-  font-weight: 400;
-  font-size: clamp(2.6rem, 6vw, 5.5rem);
-  line-height: 0.95;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
+.wedge-a {
+  fill: var(--poster-wedge-a);
 }
 
-.poster-subtitle {
-  margin-top: 10px;
-  font-size: clamp(1.05rem, 1.6vw, 1.5rem);
-  font-weight: 500;
-  color: var(--poster-ink-2);
+.wedge-b {
+  fill: var(--poster-wedge-b);
 }
 
-.poster-facts {
-  grid-area: facts;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 28px;
-  justify-content: flex-end;
-  align-self: start;
+.hub {
+  fill: var(--poster-ink);
 }
 
-.poster-facts dt {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--poster-ink-2);
-}
-
-.poster-facts dd {
-  font-family: var(--font-poster-display);
-  font-size: 1.35rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.poster-key {
-  grid-area: key;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px 18px;
-  list-style: none;
-  font-size: 0.8rem;
-  color: var(--poster-ink-2);
-}
-
-.poster-key b {
-  margin-right: 4px;
-  color: var(--poster-ink);
+.fan-name {
+  fill: var(--poster-ink);
   font-weight: 700;
+  cursor: pointer;
 }
 
-/* Ancestry ladder */
-.ascent {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 24px 36px;
-  align-items: center;
-  padding: 22px 0;
-  border-bottom: 1px solid var(--poster-rule);
+.fan-partner {
+  font-weight: 500;
 }
 
-.ascent h2,
-.branch-head,
-.cousins h2 {
+.fan-name:hover {
+  text-decoration: underline;
+}
+
+.fan-root .fan-name {
+  fill: var(--poster-paper);
   font-family: var(--font-poster-display);
-  font-weight: 400;
-  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
-.ascent h2 {
-  margin-bottom: 8px;
-  font-size: 1.1rem;
+.fan-root-note {
+  fill: var(--poster-paper);
+  opacity: 0.85;
+}
+
+.dead {
+  fill: var(--poster-dead);
+  color: var(--poster-dead);
+  font-weight: 400;
+}
+
+.panel {
+  position: absolute;
+}
+
+.panel h2 {
+  margin-bottom: calc(2 * var(--mm));
+  font-family: var(--font-poster-display);
+  font-weight: 800;
+  font-size: calc(8 * var(--mm));
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.panel-title {
+  left: calc(22 * var(--mm));
+  top: calc(14 * var(--mm));
+  width: calc(640 * var(--mm));
+}
+
+.panel-title h1 {
+  font-family: var(--font-poster-display);
+  font-weight: 800;
+  font-size: calc(118 * var(--mm));
+  line-height: 0.86;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+}
+
+.sheet-subtitle {
+  margin-top: calc(6 * var(--mm));
+  font-size: calc(13 * var(--mm));
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.sheet-meta {
+  margin-top: calc(6 * var(--mm));
+  max-width: 78ch;
+  font-size: calc(4.2 * var(--mm));
   color: var(--poster-ink-2);
 }
 
-.ascent-side-right {
-  text-align: right;
+.panel-roots {
+  left: calc(700 * var(--mm));
+  top: calc(18 * var(--mm));
+  width: calc(443 * var(--mm));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(10 * var(--mm));
+  font-size: calc(3.8 * var(--mm));
+}
+
+.panel-roots h2 {
+  font-size: calc(7.5 * var(--mm));
+}
+
+.ring-name {
+  fill: var(--poster-ink-2);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .rung + .rung {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--poster-rule-soft);
+  margin-top: calc(2.5 * var(--mm));
+  padding-top: calc(2 * var(--mm));
+  border-top: 1px solid var(--poster-rule);
 }
 
 .rung-couple {
@@ -1541,85 +1570,59 @@ body {
 }
 
 .rung-children {
-  margin-top: 2px;
-  font-size: 0.9em;
   color: var(--poster-ink-2);
 }
 
-.ascent-union {
-  padding: 14px 22px;
-  text-align: center;
-  color: var(--poster-accent-ink);
-  background: var(--poster-accent);
-  font-size: 1.25rem;
+.panel-key {
+  left: calc(700 * var(--mm));
+  top: calc(122 * var(--mm));
+  width: calc(443 * var(--mm));
+  padding: calc(4 * var(--mm)) calc(5 * var(--mm));
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: calc(1.5 * var(--mm)) calc(5 * var(--mm));
+  list-style: none;
+  border: 1px solid var(--poster-ink);
+  font-size: calc(3.8 * var(--mm));
   line-height: 1.25;
 }
 
-.ascent-union .person,
-.ascent-union .person-dagger {
-  color: inherit;
-}
-
-.ascent-union .person:hover {
-  color: var(--poster-accent);
-  background: var(--poster-accent-ink);
-}
-
-.ascent-mark {
+.panel-key b {
   display: inline-block;
-  padding: 0 10px;
-  font-family: var(--font-poster-display);
+  min-width: 1.6em;
+  font-weight: 800;
 }
 
-.ascent-note {
-  margin-top: 6px;
-  font-size: 0.8rem;
-  opacity: 0.9;
+.panel-kin {
+  top: calc(228 * var(--mm));
+  width: calc(170 * var(--mm));
+  font-size: calc(4 * var(--mm));
+  line-height: 1.28;
 }
 
-/* Descendant branches */
-.branches {
-  columns: 22rem;
-  column-gap: 2.2rem;
-  column-rule: 1px solid var(--poster-rule-soft);
-  padding-top: 22px;
+.panel-kin-left {
+  left: calc(22 * var(--mm));
 }
 
-.branch {
-  break-inside: avoid-column;
-  margin-bottom: 26px;
+.panel-kin-right {
+  right: calc(22 * var(--mm));
 }
 
-.branch-top {
-  break-inside: avoid;
-}
-
-.branch-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid var(--poster-ink);
-  font-size: 1.55rem;
-}
-
-.branch-order {
-  font-family: var(--font-poster-body);
-  font-size: 0.7em;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--poster-accent);
-}
-
-.branch-nick {
-  font-family: var(--font-poster-body);
-  font-size: 0.6em;
-  font-weight: 500;
+.panel-quote {
+  right: calc(22 * var(--mm));
+  top: calc(178 * var(--mm));
+  width: calc(443 * var(--mm));
+  font-size: calc(4.2 * var(--mm));
+  text-align: right;
   color: var(--poster-ink-2);
 }
 
-/* The indented chart with drawn connectors */
+.panel-quote span {
+  display: block;
+  font-weight: 700;
+}
+
+/* Indented list used in the corner panels */
 .tree,
 .kids {
   list-style: none;
@@ -1632,36 +1635,29 @@ body {
 }
 
 .tree > .member + .member {
-  margin-top: var(--tree-gap);
+  margin-top: calc(1.2 * var(--mm));
 }
 
 .kids {
-  margin-left: calc(var(--tree-indent) * 0.35);
-  padding-left: var(--tree-indent);
-}
-
-.kids > .member {
-  padding-top: var(--tree-gap);
+  --indent: calc(4 * var(--mm));
+  margin-left: calc(0.6 * var(--mm));
+  padding-left: var(--indent);
 }
 
 .kids > .member::before,
 .kids > .member::after {
   content: "";
   position: absolute;
-  left: calc(-1 * var(--tree-indent));
-  border-color: var(--poster-rule);
-  border-style: solid;
-  border-width: 0;
+  left: calc(-1 * var(--indent));
+  border: 0 solid var(--poster-ink-2);
 }
 
-/* horizontal tick into each child */
 .kids > .member::before {
-  top: calc(var(--tree-gap) + 0.62em);
-  width: calc(var(--tree-indent) - 0.3rem);
+  top: 0.62em;
+  width: calc(var(--indent) - 1 * var(--mm));
   border-top-width: 1px;
 }
 
-/* vertical spine along the sibling group */
 .kids > .member::after {
   top: 0;
   bottom: 0;
@@ -1670,53 +1666,33 @@ body {
 
 .kids > .member:last-child::after {
   bottom: auto;
-  height: calc(var(--tree-gap) + 0.62em);
+  height: 0.62em;
 }
 
-.union-again {
-  margin-top: 2px;
-}
-
-.union-also {
-  font-size: 0.85em;
+.union-also,
+.union-unknown {
   font-style: italic;
   color: var(--poster-ink-2);
 }
 
 .union-mark {
   padding: 0 0.3em;
-  font-size: 0.85em;
   color: var(--poster-ink-2);
-}
-
-.union-unknown {
-  font-size: 0.85em;
-  font-style: italic;
-  color: var(--poster-ink-2);
-}
-
-.member-compact {
-  break-inside: avoid;
 }
 
 .person {
   display: inline;
-  padding: 0 2px;
-  margin: 0 -2px;
+  padding: 0;
   color: var(--poster-ink);
   background: transparent;
   border: 0;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition:
-    background-color var(--dur-fast) var(--ease-out),
-    color var(--dur-fast) var(--ease-out);
 }
 
-.person:hover {
-  color: var(--poster-accent-ink);
-  background: var(--poster-accent);
+.person:hover .person-name {
+  text-decoration: underline;
 }
 
 .person-name {
@@ -1726,89 +1702,12 @@ body {
 .person-strong .person-name {
   text-decoration: underline;
   text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
+  text-underline-offset: 0.15em;
 }
 
 .person-nick {
   font-weight: 400;
   color: var(--poster-ink-2);
-}
-
-.person:hover .person-nick {
-  color: inherit;
-}
-
-.person-dagger {
-  color: var(--poster-accent);
-  font-weight: 400;
-}
-
-.person-detail {
-  display: block;
-  font-size: 0.78em;
-  line-height: 1.25;
-  color: var(--poster-ink-2);
-}
-
-/* The wider lines */
-.cousins {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px 36px;
-  margin-top: 10px;
-  padding-top: 20px;
-  border-top: 3px solid var(--poster-ink);
-  font-size: 0.92rem;
-}
-
-.cousins h2 {
-  margin-bottom: 10px;
-  font-size: 1.2rem;
-}
-
-.tree-compact {
-  columns: 16rem;
-  column-gap: 1.6rem;
-}
-
-.tree-compact > .member {
-  break-inside: avoid;
-  margin-bottom: var(--tree-gap);
-}
-
-.poster-foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 32px;
-  margin-top: 26px;
-  padding-top: 12px;
-  border-top: 1px solid var(--poster-rule);
-  font-size: 0.78rem;
-  color: var(--poster-ink-2);
-}
-
-.poster-foot p {
-  max-width: 70ch;
-}
-
-@media (max-width: 1100px) {
-  .poster-head {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "title" "facts" "key";
-  }
-
-  .poster-facts,
-  .poster-key {
-    justify-content: flex-start;
-  }
-
-  .ascent {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ascent-side-right {
-    text-align: left;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1817,8 +1716,7 @@ body {
   }
 
   .poster-toolbar,
-  .poster-actions,
-  .poster-foot {
+  .poster-actions {
     display: block;
     text-align: left;
   }
@@ -1826,14 +1724,6 @@ body {
   .poster-actions {
     max-width: none;
     margin-top: 16px;
-  }
-
-  .poster {
-    padding: 20px 16px;
-  }
-
-  .branches {
-    columns: 1;
   }
 }
 
@@ -1848,12 +1738,7 @@ body {
   }
 }
 
-/* ─── PRINT: one A0 landscape sheet ─── */
-@page {
-  size: A0 landscape;
-  margin: 12mm;
-}
-
+/* ─── PRINT: one A0 landscape sheet. The @page rule lives in layout.tsx. ─── */
 @media print {
   html,
   body {
@@ -1873,143 +1758,13 @@ body {
   .poster-page {
     min-height: 0;
     padding: 0;
+    overflow: visible;
     background: var(--poster-paper);
   }
 
-  .poster {
-    width: 1165mm;
-    max-width: none;
+  .sheet {
+    --sheet-w: 1165mm;
     margin: 0;
-    padding: 0;
-    border: 0;
-    font-size: 26pt;
-    line-height: 1.22;
-  }
-
-  .poster-head {
-    gap: 2mm 20mm;
-    padding-bottom: 6mm;
-    border-bottom-width: 1.2mm;
-  }
-
-  .poster-head h1 {
-    font-size: 150pt;
-  }
-
-  .poster-subtitle {
-    margin-top: 4mm;
-    font-size: 44pt;
-  }
-
-  .poster-facts {
-    gap: 2mm 12mm;
-  }
-
-  .poster-facts dt {
-    font-size: 16pt;
-  }
-
-  .poster-facts dd {
-    font-size: 38pt;
-  }
-
-  .poster-key {
-    gap: 1mm 9mm;
-    font-size: 19pt;
-  }
-
-  .ascent {
-    gap: 6mm 18mm;
-    padding: 8mm 0;
-    font-size: 23pt;
-  }
-
-  .ascent h2 {
-    margin-bottom: 2mm;
-    font-size: 26pt;
-  }
-
-  .ascent-union {
-    padding: 6mm 14mm;
-    font-size: 42pt;
-  }
-
-  .ascent-note {
-    font-size: 18pt;
-  }
-
-  .branches {
-    columns: 7;
-    column-gap: 9mm;
-    column-rule: 0.25mm solid var(--poster-rule-soft);
-    padding-top: 8mm;
-    --tree-indent: 11mm;
-    --tree-gap: 3.2mm;
-  }
-
-  .branch {
-    break-inside: auto;
-    margin-bottom: 9mm;
-  }
-
-  .branch-head {
-    margin-bottom: 3mm;
-    padding-bottom: 1.5mm;
-    border-bottom-width: 0.7mm;
-    font-size: 48pt;
-  }
-
-  .kids > .member::before,
-  .kids > .member::after {
-    border-color: var(--poster-ink-2);
-  }
-
-  .kids > .member::before {
-    border-top-width: 0.25mm;
-    width: calc(var(--tree-indent) - 1.2mm);
-  }
-
-  .kids > .member::after {
-    border-left-width: 0.25mm;
-  }
-
-  .person {
-    padding: 0;
-    margin: 0;
-  }
-
-  .person-detail {
-    font-size: 18pt;
-  }
-
-  .cousins {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    gap: 6mm 18mm;
-    margin-top: 5mm;
-    padding-top: 7mm;
-    border-top-width: 1.2mm;
-    font-size: 23pt;
-    --tree-indent: 9mm;
-    --tree-gap: 2.6mm;
-  }
-
-  .cousins h2 {
-    margin-bottom: 4mm;
-    font-size: 34pt;
-  }
-
-  .cousins-group:first-child .tree-compact {
-    columns: 4;
-  }
-
-  .tree-compact {
-    columns: 3;
-    column-gap: 9mm;
-  }
-
-  .poster-foot {
-    margin-top: 7mm;
-    padding-top: 4mm;
-    font-size: 16pt;
+    box-shadow: none;
   }
 }
