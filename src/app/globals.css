@@ -95,10 +95,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--color-border-subtle);
-  padding: 0 2rem;
+  padding: 0 24px;
+  color: oklch(24% 0.06 258);
+  background: oklch(99.2% 0.003 255);
+  border-bottom: 1px solid oklch(24% 0.06 258);
+  font-family: var(--font-body), "Public Sans", "Helvetica Neue", Arial, sans-serif;
 }
 
 .header-inner {
@@ -107,71 +108,65 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
+  gap: 24px;
+  min-height: 60px;
 }
 
 .header-brand {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+  color: inherit;
   text-decoration: none;
-  color: var(--color-text);
-}
-
-.header-brand svg {
-  width: 28px;
-  height: 28px;
-  color: var(--color-accent);
 }
 
 .header-title {
-  font-family: var(--font-serif);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--color-accent-dark);
+  font-family: var(--font-display), "Big Shoulders", Impact, sans-serif;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .header-subtitle {
-  font-size: 1.2rem;
-  color: var(--color-text-muted);
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: oklch(42% 0.07 255);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-nav {
   display: flex;
-  gap: 4px;
+  gap: 20px;
 }
 
 .header-nav a,
 .header-nav button {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  text-decoration: none;
+  padding: 6px 0;
+  color: inherit;
   background: transparent;
-  border: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
-  transition:
-    color var(--transition-fast),
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    opacity var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
+  transition: border-color 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .header-nav a:hover,
 .header-nav button:hover {
-  color: var(--color-text);
-  background: var(--color-surface);
+  border-bottom-color: oklch(78% 0.04 255);
 }
 
 .header-nav a.active {
-  color: var(--color-accent);
-  background: #eee7d8;
+  border-bottom-color: currentColor;
 }
 
 /* ─── PERSON DETAIL PANEL ─── */
@@ -568,11 +563,13 @@ body {
   }
 
   .header-brand {
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
   }
 
-  .header-brand svg {
-    display: none;
+  .header-subtitle {
+    white-space: normal;
   }
 
   .header-title {
@@ -614,7 +611,7 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
 }
 
 .auth-btn-container {
@@ -623,42 +620,29 @@ body {
 }
 
 .auth-btn {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  min-height: 36px;
+  padding: 6px 14px;
+  color: oklch(24% 0.06 258);
+  background: transparent;
+  border: 1px solid currentColor;
+  font: inherit;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition:
-    color var(--transition-fast),
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    opacity var(--transition-fast),
-    box-shadow var(--transition-fast),
-    transform var(--transition-fast);
-  border: 1px solid transparent;
-  outline: none;
+    color 120ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-login {
-  background: var(--color-accent-glow);
-  color: var(--color-accent);
-  border-color: var(--color-accent-dark);
+.auth-btn:hover {
+  color: oklch(99.2% 0.003 255);
+  background: oklch(24% 0.06 258);
 }
 
-.btn-login:hover {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-.btn-logout {
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
-}
-
-.btn-logout:hover {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+.auth-btn:focus-visible,
+.header-nav a:focus-visible {
+  outline: 3px solid oklch(60% 0.2 32);
+  outline-offset: 2px;
 }
 
 .user-indicator {
@@ -668,11 +652,8 @@ body {
 }
 
 .user-badge {
-  font-size: 0.8rem;
-  color: #ffffff;
-  background: #000000;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: oklch(42% 0.07 255);
 }
 
 /* Modal Overlay */
@@ -1553,10 +1534,14 @@ body {
 }
 
 .ring-name {
-  fill: var(--poster-ink-2);
-  font-weight: 600;
+  fill: var(--poster-ink);
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  paint-order: stroke;
+  stroke: var(--poster-paper);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
 }
 
 .rung + .rung {

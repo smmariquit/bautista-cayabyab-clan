@@ -42,26 +42,8 @@ export default function Header() {
       <header className="header">
         <div className="header-inner">
           <Link href="/" className="header-brand">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2L12 8" />
-              <path d="M12 8C12 8 8 10 6 14" />
-              <path d="M12 8C12 8 16 10 18 14" />
-              <path d="M6 14C6 14 4 18 5 22" />
-              <path d="M18 14C18 14 20 18 19 22" />
-              <path d="M12 8C12 8 12 14 12 22" />
-              <circle cx="12" cy="2" r="1" fill="currentColor" />
-            </svg>
-            <div>
-              <div className="header-title">Our Lineage</div>
-              <div className="header-subtitle">Bautista–Cayabyab Clan · As of 12-10-24</div>
-            </div>
+            <span className="header-title">Our Lineage</span>
+            <span className="header-subtitle">The Domingo Bautista and Pastora Cayabyab Clan</span>
           </Link>
 
           <div className="header-right">
@@ -86,7 +68,7 @@ export default function Header() {
               {isAuthenticated ? (
                 <div className="user-indicator">
                   <span className="user-badge" title={`Logged in as ${user?.username}`}>
-                    ✍️ {user?.username}
+                    Editing as {user?.username}
                   </span>
                   <button className="auth-btn btn-logout" onClick={logout}>
                     Logout
@@ -94,7 +76,7 @@ export default function Header() {
                 </div>
               ) : (
                 <button className="auth-btn btn-login" onClick={() => setIsLoginOpen(true)}>
-                  Editor Login
+                  Editor log in
                 </button>
               )}
             </div>
