@@ -4,6 +4,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
@@ -40,8 +41,15 @@ export default function Header() {
     <>
       <header className="header">
         <div className="header-inner">
-          <a href="/" className="header-brand">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <Link href="/" className="header-brand">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12 2L12 8" />
               <path d="M12 8C12 8 8 10 6 14" />
               <path d="M12 8C12 8 16 10 18 14" />
@@ -54,16 +62,24 @@ export default function Header() {
               <div className="header-title">Our Lineage</div>
               <div className="header-subtitle">Bautista–Cayabyab Clan · As of 12-10-24</div>
             </div>
-          </a>
+          </Link>
 
           <div className="header-right">
             <nav className="header-nav" aria-label="Primary navigation">
-              <a href="/" className={pathname === "/" ? "active" : ""} aria-current={pathname === "/" ? "page" : undefined}>
+              <Link
+                href="/"
+                className={pathname === "/" ? "active" : ""}
+                aria-current={pathname === "/" ? "page" : undefined}
+              >
                 Tree
-              </a>
-              <a href="/list" className={pathname === "/list" ? "active" : ""} aria-current={pathname === "/list" ? "page" : undefined}>
+              </Link>
+              <Link
+                href="/list"
+                className={pathname === "/list" ? "active" : ""}
+                aria-current={pathname === "/list" ? "page" : undefined}
+              >
                 List
-              </a>
+              </Link>
             </nav>
 
             <div className="auth-btn-container">
@@ -89,14 +105,20 @@ export default function Header() {
       {/* Login Modal */}
       {isLoginOpen && (
         <div className="modal-overlay" onClick={() => setIsLoginOpen(false)}>
-          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="login-title" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-title"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button className="modal-close" onClick={() => setIsLoginOpen(false)} aria-label="Close login dialog">
               <span aria-hidden="true">✕</span>
             </button>
-            <h2 className="modal-title" id="login-title">Clan Editor Login</h2>
-            <p className="modal-desc">
-              Log in to modify biographies, add family members, and manage relationships.
-            </p>
+            <h2 className="modal-title" id="login-title">
+              Clan Editor Login
+            </h2>
+            <p className="modal-desc">Log in to modify biographies, add family members, and manage relationships.</p>
 
             <form onSubmit={handleLoginSubmit}>
               <div className="form-group">
@@ -127,7 +149,11 @@ export default function Header() {
                 />
               </div>
 
-              {errorMsg && <div className="form-error" role="alert">{errorMsg}</div>}
+              {errorMsg && (
+                <div className="form-error" role="alert">
+                  {errorMsg}
+                </div>
+              )}
 
               <button type="submit" className="form-submit-btn" disabled={isSubmitting}>
                 {isSubmitting ? "Logging in..." : "Log In"}

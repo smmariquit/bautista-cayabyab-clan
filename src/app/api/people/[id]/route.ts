@@ -7,10 +7,7 @@ import { verifySession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const person = await withPrisma((prisma) =>
     prisma.person.findUnique({
@@ -29,7 +26,7 @@ export async function GET(
           include: { partner1: true },
         },
       },
-    })
+    }),
   );
 
   if (!person) {
@@ -39,10 +36,7 @@ export async function GET(
   return NextResponse.json(person);
 }
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session");
@@ -52,9 +46,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const person = await withPrisma((prisma) =>
-      prisma.person.update({ where: { id }, data: body })
-    );
+    const person = await withPrisma((prisma) => prisma.person.update({ where: { id }, data: body }));
     return NextResponse.json(person);
   } catch (error) {
     console.error("PATCH person error:", error);
@@ -62,10 +54,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session");

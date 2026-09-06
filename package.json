@@ -7,7 +7,15 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "deploy": "npx opennextjs-cloudflare build --skip-next-build && npx opennextjs-cloudflare deploy",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "db:seed:local": "npx tsx prisma/seed.ts && npm run db:dump && wrangler d1 execute bautista-cayabyab-clan --local --file prisma/seed.sql",
+    "db:seed:remote": "wrangler d1 execute bautista-cayabyab-clan --remote --file prisma/seed.sql",
+    "db:dump": "node scripts/dump-seed-sql.mjs"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -30,11 +38,15 @@
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10",
+    "eslint": "^9.39.5",
     "eslint-config-next": "16.2.6",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "typescript": "^6",
     "wrangler": "^4.111.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -1,42 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Our Lineage: the Domingo Bautista and Pastora Cayabyab Clan
 
-## Getting Started
+A wall poster of the clan genealogy, printed from a web page. The record is Ofelia K. Bautista's
+"Our Lineage" document dated 10 December 2024, transcribed into `prisma/data.ts` and checked page by
+page against the scan.
 
-First, run the development server:
+Live: https://bautista-cayabyab.stimmie.dev
+
+## Printing the poster
+
+1. Open the site and press **Print / save PDF**.
+2. Paper size **A0 landscape**, scale **100%**, margins default, background graphics on.
+3. The layout is one sheet. A1 at "fit to page" also reads fine from a metre away.
+
+The screen view is the same sheet; click any name for details.
+
+## Editing the record
+
+The data lives in `prisma/data.ts`. Each person has a lineage code that follows the document's own
+numbering (`1.3.x` for Domingo and Pastora's descendants, `C.*` and `B.*` for the two ancestral
+lines, `.s` for a spouse). After editing:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run db:seed:local    # rebuild dev.db and the local D1 copy
+npm test                 # cross-checks the data against the scan
+npm run db:seed:remote   # push to the production D1 database
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Editors can also log in on the site and change biographies in place.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development
 
-## Learn More
+```bash
+npm ci
+npx prisma generate
+npm run db:seed:local
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+`npm run check` runs lint, format check, typecheck, and tests. CI runs the same on every push and
+pull request, then deploys `main` to Cloudflare Workers.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## 📊 Current State of the Code
-- **Tech Stack:** React, TailwindCSS, Next.js, Node.js/NPM
-- **Repository Size:** 46 tracked files
-- **Latest Update:** `68f6518 chore: add stale issue and PR validators`
+Cloudflare Workers via OpenNext, with a D1 database bound as `DB` (see `wrangler.jsonc`). Deploys need
+two repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Runtime secrets on the
+worker: `JWT_SECRET`. The admin user is created by the seed from `ADMIN_USERNAME` and
+`ADMIN_PASSWORD`; change the password after seeding.
 
 ---
-*☕ If you found this project useful, you can support my work at [kape.stimmie.dev](https://kape.stimmie.dev)!*
+
+_☕ If you found this project useful, you can support my work at [kape.stimmie.dev](https://kape.stimmie.dev)!_

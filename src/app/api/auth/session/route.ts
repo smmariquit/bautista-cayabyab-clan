@@ -8,17 +8,17 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const sessionCookie = req.cookies.get("session");
-    
+
     if (!sessionCookie) {
       return NextResponse.json({ authenticated: false });
     }
-    
+
     const payload = verifySession(sessionCookie.value);
-    
+
     if (!payload) {
       return NextResponse.json({ authenticated: false });
     }
-    
+
     return NextResponse.json({
       authenticated: true,
       user: {

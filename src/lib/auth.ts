@@ -1,7 +1,6 @@
 // src/lib/auth.ts
 
 import crypto from "crypto";
-import { cookies } from "next/headers"; // In Next.js App Router we import cookies from 'next/headers'
 
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-family-tree-key-change-this-in-prod-12345";
 
@@ -32,13 +31,10 @@ export function verifyPassword(password: string, stored: string): boolean {
 export function signSession(payload: Omit<SessionPayload, "exp">, expiresInDays = 7): string {
   const exp = Math.floor(Date.now() / 1000) + expiresInDays * 24 * 60 * 60;
   const fullPayload: SessionPayload = { ...payload, exp };
-  
+
   const encodedPayload = Buffer.from(JSON.stringify(fullPayload)).toString("base64url");
-  const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
-    .update(encodedPayload)
-    .digest("base64url");
-    
+  const signature = crypto.createHmac("sha256", JWT_SECRET).update(encodedPayload).digest("base64url");
+
   return `${encodedPayload}.${signature}`;
 }
 
@@ -46,22 +42,19 @@ export function verifySession(token: string): SessionPayload | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 2) return null;
-    
+
     const [encodedPayload, signature] = parts;
-    const expectedSignature = crypto
-      .createHmac("sha256", JWT_SECRET)
-      .update(encodedPayload)
-      .digest("base64url");
-      
+    const expectedSignature = crypto.createHmac("sha256", JWT_SECRET).update(encodedPayload).digest("base64url");
+
     if (signature !== expectedSignature) return null;
-    
+
     const payloadStr = Buffer.from(encodedPayload, "base64url").toString("utf8");
     const payload = JSON.parse(payloadStr) as SessionPayload;
-    
+
     if (Date.now() / 1000 > payload.exp) {
       return null; // Expired
     }
-    
+
     return payload;
   } catch {
     return null;

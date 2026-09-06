@@ -14,15 +14,9 @@ interface PersonDetailProps {
   onPersonUpdate?: () => void;
 }
 
-export default function PersonDetail({
-  person,
-  onClose,
-  onNavigate,
-  allPeople,
-  onPersonUpdate,
-}: PersonDetailProps) {
+export default function PersonDetail({ person, onClose, onNavigate, allPeople, onPersonUpdate }: PersonDetailProps) {
   const { isAuthenticated } = useAuth();
-  
+
   const [detail, setDetail] = useState(person);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,6 +36,7 @@ export default function PersonDetail({
 
   // Sync state with selected person
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local edit state when the selected person changes
     setDetail(person);
     setIsEditing(false);
     setErrorMsg("");
@@ -49,6 +44,7 @@ export default function PersonDetail({
 
   // Sync form inputs with details when entering edit mode
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- copies the record into the form fields
     setFirstName(detail.firstName || "");
     setLastName(detail.lastName || "");
     setNicknames(detail.nicknames || "");
@@ -63,10 +59,12 @@ export default function PersonDetail({
 
   const getPersonById = (id: string) => allPeople.find((p) => p.id === id);
 
-  const partners = detail.partners.map((p) => ({
-    person: getPersonById(p.id),
-    type: p.type,
-  })).filter((p) => p.person);
+  const partners = detail.partners
+    .map((p) => ({
+      person: getPersonById(p.id),
+      type: p.type,
+    }))
+    .filter((p) => p.person);
 
   const children = detail.children.map((id) => getPersonById(id)).filter(Boolean) as TreePerson[];
   const parents = detail.parents.map((id) => getPersonById(id)).filter(Boolean) as TreePerson[];
@@ -104,7 +102,7 @@ export default function PersonDetail({
       }
 
       const updatedPerson = await res.json();
-      
+
       // Update detail display
       setDetail({
         ...detail,
@@ -115,43 +113,47 @@ export default function PersonDetail({
       if (onPersonUpdate) {
         onPersonUpdate(); // Trigger parent reload
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || "An error occurred while saving.");
+      setErrorMsg(err instanceof Error ? err.message : "An error occurred while saving.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="detail-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="detail-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="detail-panel">
-        
         {/* Toggle Editor Controls (Authenticated Only) */}
         <div className="detail-header">
-          <button className="detail-close" onClick={onClose} aria-label="Close">✕</button>
-          
+          <button className="detail-close" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+
           {!isEditing ? (
             <>
               <div className="detail-photo">
-                {detail.photoUrl ? (
-                  <img src={detail.photoUrl} alt={detail.firstName} />
-                ) : (
-                  genderEmoji
-                )}
+                {detail.photoUrl ? <img src={detail.photoUrl} alt={detail.firstName} /> : genderEmoji}
               </div>
               <div className="detail-name">
                 {detail.firstName} {detail.lastName} {detail.suffix && ` ${detail.suffix}`}
               </div>
               {detail.nicknames && (
                 <div className="detail-nicknames">
-                  aka {detail.nicknames.split(",").map((n) => `"${n.trim()}"`).join(", ")}
+                  aka{" "}
+                  {detail.nicknames
+                    .split(",")
+                    .map((n) => `"${n.trim()}"`)
+                    .join(", ")}
                 </div>
               )}
-              {detail.lineageCode && (
-                <span className="detail-lineage">{detail.lineageCode}</span>
-              )}
-              
+              {detail.lineageCode && <span className="detail-lineage">{detail.lineageCode}</span>}
+
               {isAuthenticated && (
                 <div className="detail-edit-actions">
                   <button className="btn-edit-secondary" onClick={() => setIsEditing(true)}>
@@ -161,7 +163,9 @@ export default function PersonDetail({
               )}
             </>
           ) : (
-            <h3 className="modal-title" style={{ marginTop: "12px" }}>Edit Profile</h3>
+            <h3 className="modal-title" style={{ marginTop: "12px" }}>
+              Edit Profile
+            </h3>
           )}
         </div>
 
@@ -217,11 +221,7 @@ export default function PersonDetail({
               <div className="form-row">
                 <div className="form-group">
                   <label>Gender</label>
-                  <select
-                    className="form-select"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                  >
+                  <select className="form-select" value={gender} onChange={(e) => setGender(e.target.value)}>
                     <option value="M">Male (♂)</option>
                     <option value="F">Female (♀)</option>
                   </select>
@@ -337,15 +337,20 @@ export default function PersonDetail({
                 <div className="detail-section">
                   <div className="detail-section-title">Partner{partners.length > 1 ? "s" : ""}</div>
                   <ul className="detail-relation-list">
-                    {partners.map(({ person: p, type }) => p && (
-                      <li key={p.id} className="detail-relation-item" onClick={() => onNavigate(p)}>
-                        <span className={`relation-icon ${p.gender === "M" ? "male" : "female"}`}>
-                          {p.gender === "M" ? "♂" : "♀"}
-                        </span>
-                        <span className="relation-name">{p.firstName} {p.lastName}</span>
-                        <span className="relation-type">{type}</span>
-                      </li>
-                    ))}
+                    {partners.map(
+                      ({ person: p, type }) =>
+                        p && (
+                          <li key={p.id} className="detail-relation-item" onClick={() => onNavigate(p)}>
+                            <span className={`relation-icon ${p.gender === "M" ? "male" : "female"}`}>
+                              {p.gender === "M" ? "♂" : "♀"}
+                            </span>
+                            <span className="relation-name">
+                              {p.firstName} {p.lastName}
+                            </span>
+                            <span className="relation-type">{type}</span>
+                          </li>
+                        ),
+                    )}
                   </ul>
                 </div>
               )}
@@ -360,7 +365,9 @@ export default function PersonDetail({
                         <span className={`relation-icon ${p.gender === "M" ? "male" : "female"}`}>
                           {p.gender === "M" ? "♂" : "♀"}
                         </span>
-                        <span className="relation-name">{p.firstName} {p.lastName}</span>
+                        <span className="relation-name">
+                          {p.firstName} {p.lastName}
+                        </span>
                         <span className="relation-type">parent</span>
                       </li>
                     ))}
@@ -378,7 +385,9 @@ export default function PersonDetail({
                         <span className={`relation-icon ${c.gender === "M" ? "male" : "female"}`}>
                           {c.gender === "M" ? "♂" : "♀"}
                         </span>
-                        <span className="relation-name">{c.firstName} {c.lastName}</span>
+                        <span className="relation-name">
+                          {c.firstName} {c.lastName}
+                        </span>
                         {c.nicknames && <span className="relation-type">"{c.nicknames.split(",")[0]}"</span>}
                       </li>
                     ))}

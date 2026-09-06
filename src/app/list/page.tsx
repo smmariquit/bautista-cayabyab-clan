@@ -74,7 +74,8 @@ export default function ListPage() {
       });
 
       uniqueChildren.sort((a, b) => {
-        if (a.lineageCode && b.lineageCode) return a.lineageCode.localeCompare(b.lineageCode, undefined, { numeric: true });
+        if (a.lineageCode && b.lineageCode)
+          return a.lineageCode.localeCompare(b.lineageCode, undefined, { numeric: true });
         return 0;
       });
 
@@ -96,7 +97,7 @@ export default function ListPage() {
           p.lastName.toLowerCase().includes(search.toLowerCase()) ||
           (p.nicknames && p.nicknames.toLowerCase().includes(search.toLowerCase())) ||
           (p.occupation && p.occupation.toLowerCase().includes(search.toLowerCase())) ||
-          (p.lineageCode && p.lineageCode.includes(search))
+          (p.lineageCode && p.lineageCode.includes(search)),
       )
     : [];
 
@@ -106,43 +107,30 @@ export default function ListPage() {
   const renderHierarchy = (node: HierarchyNode, depth = 0): React.ReactNode => {
     const { person, partner, children: nodeChildren } = node;
     const genderClass = person.gender === "M" ? "text-male" : "text-female";
-    
+
     return (
       <div key={person.id} className="hierarchy-row-container" style={{ paddingLeft: `${depth * 24}px` }}>
         <div className="hierarchy-row">
           <div className="hierarchy-content">
             <span className="hierarchy-lineage-code">{person.lineageCode || "•"}</span>
-            <span 
-              className={`hierarchy-name link-hover ${genderClass}`}
-              onClick={() => setSelectedPerson(person)}
-            >
+            <span className={`hierarchy-name link-hover ${genderClass}`} onClick={() => setSelectedPerson(person)}>
               {person.firstName} {person.lastName}
               {person.suffix && ` ${person.suffix}`}
             </span>
 
-            {person.nicknames && (
-              <span className="hierarchy-nicknames">
-                ({person.nicknames.split(",")[0]})
-              </span>
-            )}
+            {person.nicknames && <span className="hierarchy-nicknames">({person.nicknames.split(",")[0]})</span>}
 
             {partner && (
               <>
                 <span className="hierarchy-connector">m.</span>
-                <span 
+                <span
                   className={`hierarchy-partner link-hover ${partner.gender === "M" ? "text-male" : "text-female"}`}
                   onClick={() => setSelectedPerson(partner)}
                 >
                   {partner.firstName} {partner.lastName}
                 </span>
-                {partner.nicknames && (
-                  <span className="hierarchy-nicknames">
-                    ({partner.nicknames.split(",")[0]})
-                  </span>
-                )}
-                {partner.lineageCode && (
-                  <span className="hierarchy-partner-code">[{partner.lineageCode}]</span>
-                )}
+                {partner.nicknames && <span className="hierarchy-nicknames">({partner.nicknames.split(",")[0]})</span>}
+                {partner.lineageCode && <span className="hierarchy-partner-code">[{partner.lineageCode}]</span>}
               </>
             )}
 
@@ -152,11 +140,7 @@ export default function ListPage() {
               </span>
             )}
 
-            {person.occupation && (
-              <span className="hierarchy-occupation">
-                — {person.occupation}
-              </span>
-            )}
+            {person.occupation && <span className="hierarchy-occupation">— {person.occupation}</span>}
           </div>
         </div>
 
@@ -192,8 +176,8 @@ export default function ListPage() {
       <div className="list-header-section">
         <h1 className="list-title">Bautista–Cayabyab Clan Descendants</h1>
         <p className="list-desc">
-          As of December 10, 2024 • A searchable, hierarchical directory of our lineage. 
-          Click on any name to view their full biographical profile or edit details.
+          As of December 10, 2024 • A searchable, hierarchical directory of our lineage. Click on any name to view their
+          full biographical profile or edit details.
         </p>
 
         <button className="preface-toggle" onClick={() => setShowPreface(!showPreface)}>
@@ -205,56 +189,78 @@ export default function ListPage() {
             <div className="preface-title">OUR LINEAGE: THE DOMINGO BAUTISTA-PASTORA CAYABYAB CLAN</div>
             <div className="preface-date">As of December 10, 2024</div>
             <div className="preface-contributors">
-              <strong>Contributors:</strong> Ofelia K. Bautista (coordinator), Teodora B. Dequina, Alice F. Taroy, Lillie V. Cruz, Salvador C. Bautista
+              <strong>Contributors:</strong> Ofelia K. Bautista (coordinator), Teodora B. Dequina, Alice F. Taroy,
+              Lillie V. Cruz, Salvador C. Bautista
             </div>
-            
+
             <blockquote className="preface-quote">
-              "No matter how famous, influential, wealthy, or successful you are, you and I will be forgotten by the third generation... unless you are Hitler or Judas, you will be remembered for a long time. Our descendants will hardly know who we were, nor will they remember us... After we die, we will be remembered for a few more years, then we are just a portrait on someone's bookshelf, and a few more years later, our history, photos, and deeds disappear into history’s oblivion. We won't even be memories."
+              "No matter how famous, influential, wealthy, or successful you are, you and I will be forgotten by the
+              third generation... unless you are Hitler or Judas, you will be remembered for a long time. Our
+              descendants will hardly know who we were, nor will they remember us... After we die, we will be remembered
+              for a few more years, then we are just a portrait on someone's bookshelf, and a few more years later, our
+              history, photos, and deeds disappear into history’s oblivion. We won't even be memories."
               <cite>— Francis J. Kong (Philippine Star)</cite>
             </blockquote>
 
             <p className="preface-p">
-              This genealogy will at least show us who our forebears were and who our relatives are, if we care to know them. Sometimes, we meet a person who has the same family name as we have and there is a possibility that we are relatives. It would be interesting to see our connectedness. This document will then be of help.
+              This genealogy will at least show us who our forebears were and who our relatives are, if we care to know
+              them. Sometimes, we meet a person who has the same family name as we have and there is a possibility that
+              we are relatives. It would be interesting to see our connectedness. This document will then be of help.
             </p>
 
             <p className="preface-p">
-              Nicknames are included because in Philippine culture, nicknames indicate familiarity and intimacy so other than their surnames, people are sometimes better known or only known by their nicknames, rather than by their first names. Usually, nicknames are derived from first names, but it is not uncommon that nicknames bear no resemblance to their first names. Often, their nickname at home is different from those given by their friends.
+              Nicknames are included because in Philippine culture, nicknames indicate familiarity and intimacy so other
+              than their surnames, people are sometimes better known or only known by their nicknames, rather than by
+              their first names. Usually, nicknames are derived from first names, but it is not uncommon that nicknames
+              bear no resemblance to their first names. Often, their nickname at home is different from those given by
+              their friends.
             </p>
 
             <p className="preface-p">
-              The numbering system adopted shows the generations after Roberto Gundayao and Anacleta Junio, which means that the lineage is up to the 5th generation. And since the children of the fifth generation are not numbered, six generations are included in this list.
+              The numbering system adopted shows the generations after Roberto Gundayao and Anacleta Junio, which means
+              that the lineage is up to the 5th generation. And since the children of the fifth generation are not
+              numbered, six generations are included in this list.
             </p>
 
             <blockquote className="preface-quote">
-              "If you don't recount your family history, it might be lost. The tales may not seem important but they are what binds families and makes of us who we are."
+              "If you don't recount your family history, it might be lost. The tales may not seem important but they are
+              what binds families and makes of us who we are."
               <cite>— Madeleine L'Engle</cite>
             </blockquote>
 
             <p className="preface-p">
-              Most of us are ordinary folks. However, in a family, there may be luminaries and bad eggs. We are proud of our luminaries in our ancestry and let them be our inspiration. We should not be ashamed of those of us who did not do well but let them be a reminder of our being human.
+              Most of us are ordinary folks. However, in a family, there may be luminaries and bad eggs. We are proud of
+              our luminaries in our ancestry and let them be our inspiration. We should not be ashamed of those of us
+              who did not do well but let them be a reminder of our being human.
             </p>
 
             <div className="preface-note-section">
               <h3 className="preface-note-title">📌 Note to Relatives</h3>
               <p className="preface-p">
-                As of this writing, the list in the genealogy is incomplete, but with everybody’s cooperation, the list will be completed.
+                As of this writing, the list in the genealogy is incomplete, but with everybody’s cooperation, the list
+                will be completed.
               </p>
               <p className="preface-p">
-                Make this narrative more informative. Pictures of the family — with captions please — will spice up this genealogy.
+                Make this narrative more informative. Pictures of the family — with captions please — will spice up this
+                genealogy.
               </p>
               <p className="preface-p">
-                Then we will ask a tech-savvy relative, probably <strong>Roberto K. Bautista Jr.</strong> to help us with the family tree format, if possible. We will see if it is a better and easier way to understand the relationships. Or maybe we can use both the family tree format and the present directory list format.
+                Then we will ask a tech-savvy relative, probably <strong>Roberto K. Bautista Jr.</strong> to help us
+                with the family tree format, if possible. We will see if it is a better and easier way to understand the
+                relationships. Or maybe we can use both the family tree format and the present directory list format.
               </p>
               <p className="preface-p">
-                Please send your family history, pictures, dates and other information which will help me in organizing them. Feel free to make corrections and suggestions.
+                Please send your family history, pictures, dates and other information which will help me in organizing
+                them. Feel free to make corrections and suggestions.
               </p>
               <p className="preface-p">
-                We hope to convert this document into a book which everybody in the family can avail of, for the information of the present generation and the benefit of future generations.
+                We hope to convert this document into a book which everybody in the family can avail of, for the
+                information of the present generation and the benefit of future generations.
               </p>
             </div>
           </div>
         )}
-        
+
         <div className="list-search-wrapper" style={{ marginTop: "2rem" }}>
           <span className="list-search-icon">🔍</span>
           <input
@@ -284,7 +290,9 @@ export default function ListPage() {
                     <div className="search-card-body">
                       <div className="search-card-name">
                         {p.firstName} {p.lastName} {p.suffix && ` ${p.suffix}`}
-                        {p.nicknames && <span className="text-accent italic font-normal ml-2">({p.nicknames.split(",")[0]})</span>}
+                        {p.nicknames && (
+                          <span className="text-accent italic font-normal ml-2">({p.nicknames.split(",")[0]})</span>
+                        )}
                       </div>
                       <div className="search-card-meta">
                         {p.lineageCode && <span className="meta-badge">{p.lineageCode}</span>}
@@ -303,9 +311,7 @@ export default function ListPage() {
           // Render full hierarchical list
           <div className="hierarchy-list-wrapper">
             <h2 className="section-title">Full Family Lineage</h2>
-            <div className="hierarchy-tree-view">
-              {rootNode && renderHierarchy(rootNode)}
-            </div>
+            <div className="hierarchy-tree-view">{rootNode && renderHierarchy(rootNode)}</div>
           </div>
         )}
       </div>

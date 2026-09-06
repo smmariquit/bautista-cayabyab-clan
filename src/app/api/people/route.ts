@@ -18,7 +18,7 @@ export async function GET() {
         partnerships2: { select: { partner1Id: true, type: true } },
       },
       orderBy: [{ generation: "asc" }, { lineageCode: "asc" }],
-    })
+    }),
   );
 
   return NextResponse.json(people);

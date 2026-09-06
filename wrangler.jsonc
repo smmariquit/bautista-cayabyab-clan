@@ -4,15 +4,16 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-07-05",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "bautista-cayabyab.stimmie.dev", "custom_domain": true }],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "bautista-cayabyab-clan",
-      "database_id": "REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID"
-    }
-  ]
+      "database_id": "86586174-ec91-4a87-90d1-53a88176053b",
+    },
+  ],
 }

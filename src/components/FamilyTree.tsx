@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { TreePerson } from "@/lib/types";
 
 interface FamilyTreeProps {
@@ -8,97 +8,279 @@ interface FamilyTreeProps {
   onSelectPerson: (person: TreePerson) => void;
 }
 
-interface FamilyUnit {
-  key: string;
-  adults: TreePerson[];
-  children: TreePerson[];
-  type: string;
-}
+type Select = (person: TreePerson) => void;
 
-const comparePeople = (a: TreePerson, b: TreePerson) =>
+// Lineage codes of the anchor couples, as written in prisma/seed.ts.
+const CODES = {
+  gundayao: ["C.0.1", "C.0.2"],
+  florentina: ["C.1", "C.1.s"],
+  carlos: ["B.0.1", "B.0.2"],
+  claudio: ["B.1", "B.1.s"],
+  pastora: "1.3",
+  domingo: "B.1.3",
+  siti: "C.U.1",
+  dominga: "B.2",
+  mariano: "B.3",
+};
+
+const UNION_MARK: Record<string, string> = {
+  married: "×",
+  livein: "&",
+  divorced: "× div.",
+  unrecorded: "?",
+};
+
+export const comparePeople = (a: TreePerson, b: TreePerson) =>
   (a.lineageCode || "").localeCompare(b.lineageCode || "", undefined, { numeric: true }) ||
   `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
 
-const fullName = (person: TreePerson) =>
-  [person.firstName, person.lastName, person.suffix].filter(Boolean).join(" ");
+export const fullName = (person: TreePerson) =>
+  [person.firstName, person.lastName, person.suffix].filter(Boolean).join(" ") || "(name not recorded)";
 
-function PersonName({ person, onSelect }: { person: TreePerson; onSelect: (person: TreePerson) => void }) {
+const nicknames = (person: TreePerson) =>
+  person.nicknames
+    ? person.nicknames
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean)
+        .join(" / ")
+    : "";
+
+/** Index of the family graph keyed every way the poster needs. */
+export function indexPeople(people: TreePerson[]) {
+  const byId = new Map(people.map((p) => [p.id, p]));
+  const byCode = new Map(people.filter((p) => p.lineageCode).map((p) => [p.lineageCode as string, p]));
+  const childrenOf = (person: TreePerson) =>
+    person.children
+      .map((id) => byId.get(id))
+      .filter((c): c is TreePerson => Boolean(c))
+      .sort(comparePeople);
+  const partnersOf = (person: TreePerson) =>
+    person.partners
+      .map((pp) => ({ person: byId.get(pp.id), type: pp.type }))
+      .filter((pp): pp is { person: TreePerson; type: string } => Boolean(pp.person));
+  const childrenOfCouple = (a: TreePerson | undefined, b: TreePerson | undefined) =>
+    a && b ? childrenOf(a).filter((c) => c.parents.includes(b.id)) : a ? childrenOf(a) : [];
+  const couple = (codes: string[]) => codes.map((c) => byCode.get(c));
+  return { byId, byCode, childrenOf, partnersOf, childrenOfCouple, couple };
+}
+
+type Index = ReturnType<typeof indexPeople>;
+
+/** One blood member with every partnership and the children of each. */
+export function unionsOf(index: Index, person: TreePerson) {
+  const kids = index.childrenOf(person);
+  const placed = new Set<string>();
+  const unions: { partner?: TreePerson; type: string; children: TreePerson[] }[] = index
+    .partnersOf(person)
+    .map(({ person: partner, type }) => {
+      const children = kids.filter((c) => c.parents.includes(partner.id));
+      children.forEach((c) => placed.add(c.id));
+      return { partner, type, children };
+    });
+  const leftover = kids.filter((c) => !placed.has(c.id));
+  if (leftover.length) unions.push({ type: "unrecorded", children: leftover });
+  return unions;
+}
+
+/** Everyone reachable from a set of roots through children and partners. */
+export function reachableFrom(index: Index, roots: TreePerson[]) {
+  const seen = new Set<string>();
+  const stack = [...roots];
+  while (stack.length) {
+    const p = stack.pop()!;
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    stack.push(...index.childrenOf(p), ...index.partnersOf(p).map((pp) => pp.person));
+  }
+  return seen;
+}
+
+const subtreeSize = (index: Index, person: TreePerson): number =>
+  1 +
+  unionsOf(index, person).reduce(
+    (n, u) => n + (u.partner ? 1 : 0) + u.children.reduce((m, c) => m + subtreeSize(index, c), 0),
+    0,
+  );
+
+function PersonName({ person, onSelect, strong }: { person: TreePerson; onSelect: Select; strong?: boolean }) {
+  const nick = nicknames(person);
   return (
-    <button className="poster-person" data-person-id={person.id} type="button" onClick={() => onSelect(person)}>
-      <span className="poster-person-name">{fullName(person)}</span>
-      {person.nicknames && (
-        <span className="poster-nickname"> ({person.nicknames.split(",").join(" / ")})</span>
+    <button
+      className={`person${strong ? " person-strong" : ""}`}
+      data-person-id={person.id}
+      type="button"
+      onClick={() => onSelect(person)}
+    >
+      <span className="person-name">{fullName(person)}</span>
+      {nick && <span className="person-nick"> ({nick})</span>}
+      {person.deathDate && (
+        <span className="person-dagger" title="Deceased">
+          {" "}
+          †
+        </span>
       )}
     </button>
   );
 }
 
-function buildFamilyUnits(people: TreePerson[]) {
-  const byId = new Map(people.map((person) => [person.id, person]));
-  const units: FamilyUnit[] = [];
-  const seenPartnerships = new Set<string>();
-  const assignedChildren = new Set<string>();
-  const represented = new Set<string>();
+const firstNick = (person: TreePerson) => nicknames(person).split(" / ")[0] || person.firstName;
 
-  for (const person of people) {
-    for (const partnership of person.partners) {
-      const partner = byId.get(partnership.id);
-      if (!partner) continue;
+/** Occupation line under a couple. Labels each note with a name once both partners have one. */
+function Detail({ people }: { people: (TreePerson | undefined)[] }) {
+  const noted = people.filter((p): p is TreePerson => Boolean(p?.occupation));
+  if (noted.length === 0) return null;
+  const label = noted.length > 1 || noted[0] !== people[0];
+  return (
+    <span className="person-detail">
+      {noted.map((p, i) => (
+        <span key={p.id}>
+          {i > 0 && " · "}
+          {label && <b>{firstNick(p)}: </b>}
+          {p.occupation}
+        </span>
+      ))}
+    </span>
+  );
+}
 
-      const key = [person.id, partner.id].sort().join(":");
-      if (seenPartnerships.has(key)) continue;
-      seenPartnerships.add(key);
+/**
+ * One blood member with every partnership and the children of each.
+ * `lead` (a branch heading) is kept in one unbreakable block with the first couple line,
+ * so a column break can never strand a heading from its family.
+ */
+function Member({
+  index,
+  person,
+  onSelect,
+  lead,
+}: {
+  index: Index;
+  person: TreePerson;
+  onSelect: Select;
+  lead?: ReactNode;
+}) {
+  const unions = unionsOf(index, person);
+  const compact = subtreeSize(index, person) <= 9;
+  const withLead = (line: ReactNode) =>
+    lead ? (
+      <div className="branch-top">
+        {lead}
+        {line}
+      </div>
+    ) : (
+      line
+    );
+  return (
+    <li className={`member${compact ? " member-compact" : ""}`}>
+      {unions.length === 0 ? (
+        <div className="union">
+          {withLead(
+            <div className="union-line">
+              <PersonName person={person} onSelect={onSelect} />
+              <Detail people={[person]} />
+            </div>,
+          )}
+        </div>
+      ) : (
+        unions.map((u, i) => (
+          <div className={`union${i > 0 ? " union-again" : ""}`} key={u.partner?.id ?? "unrecorded"}>
+            {(i === 0 ? withLead : (line: ReactNode) => line)(
+              <div className="union-line">
+                {i === 0 ? (
+                  <PersonName person={person} onSelect={onSelect} />
+                ) : (
+                  <span className="union-also">also</span>
+                )}
+                <span className="union-mark">{UNION_MARK[u.type] ?? "×"}</span>
+                {u.partner ? (
+                  <PersonName person={u.partner} onSelect={onSelect} />
+                ) : (
+                  <span className="union-unknown">partner not recorded</span>
+                )}
+                <Detail people={[i === 0 ? person : undefined, u.partner]} />
+              </div>,
+            )}
+            {u.children.length > 0 && (
+              <ul className="kids">
+                {u.children.map((child) => (
+                  <Member key={child.id} index={index} person={child} onSelect={onSelect} />
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      )}
+    </li>
+  );
+}
 
-      const adults = [person, partner].sort(comparePeople);
-      const children = people
-        .filter((child) => child.parents.includes(person.id) && child.parents.includes(partner.id))
-        .sort(comparePeople);
-
-      adults.forEach((adult) => represented.add(adult.id));
-      children.forEach((child) => {
-        assignedChildren.add(child.id);
-        represented.add(child.id);
-      });
-      units.push({ key, adults, children, type: partnership.type });
-    }
-  }
-
-  for (const person of people) {
-    const children = person.children
-      .filter((childId) => !assignedChildren.has(childId))
-      .map((childId) => byId.get(childId))
-      .filter((child): child is TreePerson => Boolean(child))
-      .sort(comparePeople);
-
-    if (children.length === 0) continue;
-    represented.add(person.id);
-    children.forEach((child) => represented.add(child.id));
-    units.push({ key: `single:${person.id}`, adults: [person], children, type: "unrecorded" });
-  }
-
-  units.sort((a, b) => {
-    const generation = Math.min(...a.adults.map((person) => person.generation)) - Math.min(...b.adults.map((person) => person.generation));
-    return generation || comparePeople(a.adults[0], b.adults[0]);
-  });
-
-  return {
-    units,
-    unplaced: people.filter((person) => !represented.has(person.id)).sort(comparePeople),
-  };
+/** One row of the ancestry ladder: a couple and their children, one child carried forward. */
+function Rung({ index, codes, carry, onSelect }: { index: Index; codes: string[]; carry: string; onSelect: Select }) {
+  const [a, b] = index.couple(codes);
+  if (!a && !b) return null;
+  const children = index.childrenOfCouple(a, b);
+  return (
+    <div className="rung">
+      <p className="rung-couple">
+        {a && <PersonName person={a} onSelect={onSelect} />}
+        {a && b && <span className="union-mark">×</span>}
+        {b && <PersonName person={b} onSelect={onSelect} />}
+      </p>
+      {children.length > 0 && (
+        <p className="rung-children">
+          {children.map((c, i) => (
+            <span key={c.id}>
+              {i > 0 && ", "}
+              <PersonName person={c} onSelect={onSelect} strong={c.lineageCode === carry} />
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) {
   const [search, setSearch] = useState("");
-  const { units, unplaced } = useMemo(() => buildFamilyUnits(people), [people]);
+  const index = useMemo(() => indexPeople(people), [people]);
+
+  const pastora = index.byCode.get(CODES.pastora);
+  const domingo = index.byCode.get(CODES.domingo);
+  const branches = useMemo(() => index.childrenOfCouple(domingo, pastora), [index, domingo, pastora]);
+
+  const [florentina, marcelino] = index.couple(CODES.florentina);
+  const [claudio, marcelina] = index.couple(CODES.claudio);
+  const cayabyabCousins = [
+    ...index.childrenOfCouple(florentina, marcelino).filter((p) => p.lineageCode !== CODES.pastora),
+    ...[index.byCode.get(CODES.siti)].filter((p): p is TreePerson => Boolean(p)),
+  ];
+  const bautistaCousins = [
+    ...index.childrenOfCouple(claudio, marcelina).filter((p) => p.lineageCode !== CODES.domingo),
+    ...[CODES.dominga, CODES.mariano].map((c) => index.byCode.get(c)).filter((p): p is TreePerson => Boolean(p)),
+  ];
+
+  const unplaced = useMemo(() => {
+    const roots = [...index.couple(CODES.gundayao), ...index.couple(CODES.carlos), index.byCode.get(CODES.siti)].filter(
+      (p): p is TreePerson => Boolean(p),
+    );
+    const seen = reachableFrom(index, roots);
+    return people.filter((p) => !seen.has(p.id)).sort(comparePeople);
+  }, [index, people]);
+
   const query = search.trim().toLocaleLowerCase();
   const results = query
-    ? people.filter((person) =>
-        [person.firstName, person.lastName, person.nicknames, person.lineageCode]
-          .filter(Boolean)
-          .some((value) => value!.toLocaleLowerCase().includes(query)),
-      ).slice(0, 12)
+    ? people
+        .filter((person) =>
+          [person.firstName, person.lastName, person.nicknames, person.lineageCode]
+            .filter(Boolean)
+            .some((value) => value!.toLocaleLowerCase().includes(query)),
+        )
+        .slice(0, 12)
     : [];
-  const generationCount = Math.max(0, ...people.map((person) => person.generation));
+
+  const generations = Math.max(0, ...people.map((p) => p.generation));
+  const deceased = people.filter((p) => p.deathDate).length;
 
   if (people.length === 0) {
     return (
@@ -130,9 +312,15 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
                 <ul>
                   {results.map((person) => (
                     <li key={person.id}>
-                      <button type="button" onClick={() => { onSelectPerson(person); setSearch(""); }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectPerson(person);
+                          setSearch("");
+                        }}
+                      >
                         {fullName(person)}
-                        {person.nicknames && ` (${person.nicknames.split(",").join(" / ")})`}
+                        {person.nicknames && ` (${nicknames(person)})`}
                       </button>
                     </li>
                   ))}
@@ -145,77 +333,136 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
           <button type="button" className="poster-print-button" onClick={() => window.print()}>
             Print / save PDF
           </button>
-          <p>A0 landscape at 100% scale gives the clearest wall poster.</p>
+          <p>Set the printer to A0 landscape at 100%. Smaller sheets scale down cleanly to A1.</p>
         </div>
       </div>
 
-      <div className="family-poster" id="family-poster">
-        <header className="poster-heading">
-          <p className="poster-kicker">The Domingo Bautista–Pastora Cayabyab Clan</p>
-          <h1 id="poster-title">Our Lineage</h1>
-          <p className="poster-date">Family record as of December 10, 2024</p>
-          <div className="poster-summary" aria-label="Family tree summary">
-            <span><strong>{people.length}</strong> people named in the scan</span>
-            <span><strong>{generationCount}</strong> generations after the founding couples</span>
-            <span><strong>{units.length}</strong> family groups</span>
+      <article className="poster" id="family-poster">
+        <header className="poster-head">
+          <div className="poster-title-block">
+            <h1 id="poster-title">Our Lineage</h1>
+            <p className="poster-subtitle">The Domingo Bautista and Pastora Cayabyab Clan</p>
           </div>
+          <dl className="poster-facts">
+            <div>
+              <dt>Record as of</dt>
+              <dd>10 December 2024</dd>
+            </div>
+            <div>
+              <dt>People named</dt>
+              <dd>{people.length}</dd>
+            </div>
+            <div>
+              <dt>Generations</dt>
+              <dd>{generations + 1}</dd>
+            </div>
+            <div>
+              <dt>Remembered</dt>
+              <dd>{deceased} †</dd>
+            </div>
+          </dl>
+          <ul className="poster-key" aria-label="How to read the chart">
+            <li>
+              <b>×</b> married
+            </li>
+            <li>
+              <b>&amp;</b> live-in or common-law partner
+            </li>
+            <li>
+              <b>× div.</b> divorced
+            </li>
+            <li>
+              <b>?</b> other parent not recorded
+            </li>
+            <li>
+              <b>†</b> deceased
+            </li>
+            <li>
+              <b>(name)</b> known to family and friends as
+            </li>
+          </ul>
         </header>
 
-        <aside className="poster-key" aria-label="Relationship key">
-          <span><strong>×</strong> married</span>
-          <span><strong>Partner</strong> live-in or common-law partner</span>
-          <span><strong>Divorced</strong> divorced</span>
-          <span><strong>Children</strong> listed directly below their parents</span>
-        </aside>
+        <section className="ascent" aria-label="Ancestry of Domingo Bautista and Pastora Cayabyab">
+          <div className="ascent-side">
+            <h2>The Cayabyab line</h2>
+            <Rung index={index} codes={CODES.gundayao} carry="C.1" onSelect={onSelectPerson} />
+            <Rung index={index} codes={CODES.florentina} carry={CODES.pastora} onSelect={onSelectPerson} />
+          </div>
+          <div className="ascent-union">
+            {domingo && <PersonName person={domingo} onSelect={onSelectPerson} strong />}
+            <span className="ascent-mark">×</span>
+            {pastora && <PersonName person={pastora} onSelect={onSelectPerson} strong />}
+            <p className="ascent-note">Their seven children head the seven branches below.</p>
+          </div>
+          <div className="ascent-side ascent-side-right">
+            <h2>The Bautista line</h2>
+            <Rung index={index} codes={CODES.carlos} carry="B.1" onSelect={onSelectPerson} />
+            <Rung index={index} codes={CODES.claudio} carry={CODES.domingo} onSelect={onSelectPerson} />
+          </div>
+        </section>
 
-        <div className="poster-units" aria-label="Family groups">
-          {units.map((unit) => {
-            const generation = Math.min(...unit.adults.map((person) => person.generation));
-            const connector = unit.type === "married" ? "×" : unit.type === "divorced" ? "Divorced" : unit.type === "livein" ? "Partner" : "Other parent not recorded";
-
-            return (
-              <article className={`family-unit generation-${generation}`} key={unit.key}>
-                <p className="family-unit-meta">
-                  {generation === 0 ? "Founding couple" : `Generation ${generation}`}
-                  {unit.adults[0].lineageCode && ` · ${unit.adults[0].lineageCode}`}
-                </p>
-                <h2>
-                  <PersonName person={unit.adults[0]} onSelect={onSelectPerson} />
-                  <span className="family-connector">{connector}</span>
-                  {unit.adults[1] && <PersonName person={unit.adults[1]} onSelect={onSelectPerson} />}
-                </h2>
-                {unit.children.length > 0 && (
-                  <div className="family-children">
-                    <strong>Children</strong>
-                    <ul>
-                      {unit.children.map((child) => (
-                        <li key={child.id}><PersonName person={child} onSelect={onSelectPerson} /></li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-
-          {unplaced.length > 0 && (
-            <article className="family-unit family-unit-unplaced">
-              <p className="family-unit-meta">Named in the source; relationship not recorded</p>
-              <h2>Unplaced relatives</h2>
-              <ul className="unplaced-people">
-                {unplaced.map((person) => (
-                  <li key={person.id}><PersonName person={person} onSelect={onSelectPerson} /></li>
-                ))}
+        <div className="branches">
+          {branches.map((head, i) => (
+            <section className="branch" key={head.id} aria-labelledby={`branch-${head.id}`}>
+              <ul className="tree">
+                <Member
+                  index={index}
+                  person={head}
+                  onSelect={onSelectPerson}
+                  lead={
+                    <h2 id={`branch-${head.id}`} className="branch-head">
+                      <span className="branch-order">{i + 1}</span>
+                      {head.firstName} {nicknames(head) && <span className="branch-nick">({nicknames(head)})</span>}
+                    </h2>
+                  }
+                />
               </ul>
-            </article>
-          )}
+            </section>
+          ))}
         </div>
 
-        <footer className="poster-footer">
-          <p>Compiled by Ofelia K. Bautista, Teodora B. Dequina, Alice F. Taroy, Lillie V. Cruz, and Salvador C. Bautista.</p>
-          <p>Names with an unknown surname are printed exactly as recorded in the source.</p>
+        <section className="cousins" aria-label="Wider family">
+          <div className="cousins-group">
+            <h2>Pastora's brothers and sisters</h2>
+            <ul className="tree tree-compact">
+              {cayabyabCousins.map((p) => (
+                <Member key={p.id} index={index} person={p} onSelect={onSelectPerson} />
+              ))}
+            </ul>
+          </div>
+          <div className="cousins-group">
+            <h2>Domingo's brothers, aunt, and uncle</h2>
+            <ul className="tree tree-compact">
+              {bautistaCousins.map((p) => (
+                <Member key={p.id} index={index} person={p} onSelect={onSelectPerson} />
+              ))}
+            </ul>
+          </div>
+          {unplaced.length > 0 && (
+            <div className="cousins-group">
+              <h2>Named, relationship not recorded</h2>
+              <ul className="tree tree-compact">
+                {unplaced.map((p) => (
+                  <li className="member" key={p.id}>
+                    <div className="union">
+                      <PersonName person={p} onSelect={onSelectPerson} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        <footer className="poster-foot">
+          <p>
+            Compiled by Ofelia K. Bautista with Teodora B. Dequina, Alice F. Taroy, Lillie V. Cruz, and Salvador C.
+            Bautista. Numbering, nicknames, and notes follow their record; blanks are blanks in the source.
+          </p>
+          <p>“If you don't recount your family history, it might be lost.” Madeleine L'Engle</p>
         </footer>
-      </div>
+      </article>
     </section>
   );
 }
