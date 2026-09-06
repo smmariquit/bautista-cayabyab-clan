@@ -35,6 +35,7 @@ export async function GET() {
         generation: p.generation,
         lineageCode: p.lineageCode,
         occupation: p.occupation,
+        education: p.education,
         bio: p.bio,
         photoUrl: p.photoUrl,
         birthDate: p.birthDate,

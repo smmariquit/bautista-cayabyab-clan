@@ -13,6 +13,7 @@ import {
   type Index,
 } from "@/lib/family";
 import FanChart from "./FanChart";
+import { layoutFan } from "@/lib/fan";
 
 interface FamilyTreeProps {
   people: TreePerson[];
@@ -116,11 +117,27 @@ function Rung({ index, codes, carry, onSelect }: { index: Index; codes: string[]
 
 export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) {
   const [search, setSearch] = useState("");
+  const [fit, setFit] = useState(false);
   const index = useMemo(() => indexPeople(people), [people]);
 
   const pastora = index.byCode.get(CODES.pastora);
   const domingo = index.byCode.get(CODES.domingo);
   const branches = useMemo(() => index.childrenOfCouple(domingo, pastora), [index, domingo, pastora]);
+  const layout = useMemo(() => layoutFan(index, branches), [index, branches]);
+  const parentsOf = (p: TreePerson) =>
+    p.parents.map((id) => index.byId.get(id)).filter((q): q is TreePerson => Boolean(q));
+
+  // Surname finder: which wedge each family name sits in.
+  const finder = useMemo(() => {
+    const map = new Map<string, Set<number>>();
+    for (const n of layout.nodes) {
+      for (const p of [n.person, n.partner]) {
+        if (!p?.lastName) continue;
+        map.set(p.lastName, (map.get(p.lastName) ?? new Set()).add(n.branch));
+      }
+    }
+    return [...map].sort(([a], [b]) => a.localeCompare(b)).map(([name, set]) => [name, [...set].sort()] as const);
+  }, [layout]);
 
   const [florentina, marcelino] = index.couple(CODES.florentina);
   const [claudio, marcelina] = index.couple(CODES.claudio);
@@ -200,27 +217,58 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
           )}
         </div>
         <div className="poster-actions">
+          <button type="button" className="poster-fit-button" onClick={() => setFit((f) => !f)} aria-pressed={fit}>
+            {fit ? "Actual size" : "Fit to screen"}
+          </button>
           <button type="button" className="poster-print-button" onClick={() => window.print()}>
             Print / save PDF
           </button>
-          <p>A0 landscape at 100%. The sheet scrolls sideways on screen; the print is one page.</p>
+          <p>A0 landscape at 100%. One page.</p>
         </div>
       </div>
 
-      <article className="sheet" id="family-poster">
+      <article className={`sheet${fit ? " sheet-fit" : ""}`} id="family-poster">
         {domingo && pastora && (
-          <FanChart index={index} root={[domingo, pastora]} branches={branches} onSelect={onSelectPerson} />
+          <FanChart layout={layout} root={[domingo, pastora]} parentsOf={parentsOf} onSelect={onSelectPerson} />
         )}
 
         <header className="panel panel-title">
           <h1 id="poster-title">Our Lineage</h1>
           <p className="sheet-subtitle">The Domingo Bautista and Pastora Cayabyab Clan</p>
           <p className="sheet-meta">
-            Record as of 10 December 2024. Compiled by Ofelia K. Bautista with Teodora B. Dequina, Alice F. Taroy,
+            Record as of 10 December 2024, compiled by Ofelia K. Bautista with Teodora B. Dequina, Alice F. Taroy,
             Lillie V. Cruz, and Salvador C. Bautista. Read the fan from the bottom: each ring is one generation, each
-            wedge one family.
+            wedge one of the seven children's families. Small numbers point to the notes.
           </p>
         </header>
+
+        <section className="panel panel-finder" aria-label="Find your family name">
+          <h2>Find your family name</h2>
+          <ul className="finder">
+            {finder.map(([name, wedges]) => (
+              <li key={name}>
+                <span>{name}</span>
+                <b>{wedges.join(" ")}</b>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="panel panel-notes" aria-label="Notes">
+          <h2>Notes</h2>
+          <ol className="notes">
+            {layout.notes.map((note, i) => (
+              <li key={note.n}>
+                {(i === 0 || layout.notes[i - 1].branch !== note.branch) && (
+                  <span className="note-head">
+                    {note.branch} · {branches[note.branch - 1]?.firstName}
+                  </span>
+                )}
+                <b>{note.n}</b> <span className="note-name">{fullName(note.person)}.</span> {note.text}
+              </li>
+            ))}
+          </ol>
+        </section>
 
         <section className="panel panel-roots" aria-label="Parents and grandparents">
           <div>
@@ -284,10 +332,6 @@ export default function FamilyTree({ people, onSelectPerson }: FamilyTreeProps) 
             ))}
           </ul>
         </section>
-
-        <p className="panel panel-quote">
-          “If you don't recount your family history, it might be lost.” <span>Madeleine L'Engle</span>
-        </p>
       </article>
     </section>
   );

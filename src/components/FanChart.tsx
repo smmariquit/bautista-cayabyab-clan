@@ -3,15 +3,9 @@
 import { arc } from "d3";
 import type { KeyboardEvent } from "react";
 import type { TreePerson } from "@/lib/types";
-import { fullName, nicknames, UNION_MARK, unionsOf, type Index } from "@/lib/family";
+import { fullName, nicknames } from "@/lib/family";
+import { CX, CY, R_HUB, R_OUT, SHEET, type FanLayout, type FanNode } from "@/lib/fan";
 
-// Sheet geometry in millimetres: the SVG viewBox is the A0 landscape printable area.
-export const SHEET = { w: 1165, h: 817 };
-const CX = SHEET.w / 2;
-const CY = 805;
-const R_HUB = 78;
-const R_OUT = 560;
-const FONT_BY_DEPTH = [9, 6.2, 4.9, 4.2, 3.7, 3.4];
 const RING_NAMES = [
   "children",
   "grandchildren",
@@ -20,84 +14,19 @@ const RING_NAMES = [
   "fifth generation",
 ];
 
-/** A node is one union: a blood member plus one partner, with that couple's children. */
-type FanNode = {
-  person: TreePerson;
-  partner?: TreePerson;
-  mark: string;
-  letter?: string;
-  depth: number;
-  branch: string;
-  children: FanNode[];
-  /** Angle this subtree needs so no label overlaps its neighbour, in radians. */
-  need: number;
-  x0: number;
-  x1: number;
-};
-
-const fontAt = (depth: number) => FONT_BY_DEPTH[Math.min(depth, FONT_BY_DEPTH.length - 1)];
-
-function build(index: Index, person: TreePerson, depth: number, branch: string, rIn: (d: number) => number): FanNode[] {
-  const unions = unionsOf(index, person);
-  const make = (
-    partner: TreePerson | undefined,
-    mark: string,
-    letter: string | undefined,
-    kids: TreePerson[],
-  ): FanNode => {
-    const children = kids.flatMap((c) => build(index, c, depth + 1, branch, rIn));
-    const lines = partner ? 2 : 1;
-    const own = (lines * fontAt(depth) * 1.15 + 3) / (rIn(depth) + 5);
-    const need = Math.max(
-      own,
-      children.reduce((s, c) => s + c.need, 0),
-    );
-    return { person, partner, mark, letter, depth, branch, children, need, x0: 0, x1: 0 };
-  };
-  if (unions.length === 0) return [make(undefined, "", undefined, [])];
-  return unions.map((u, i) =>
-    // The source repeats a person as 1.8.1.a, 1.8.1.b for each partner; keep that convention.
-    make(u.partner, UNION_MARK[u.type] ?? "×", unions.length > 1 ? String.fromCharCode(97 + i) : undefined, u.children),
-  );
-}
-
-/** Give each subtree its share of [a0, a1]; children spread to fill their parent's wedge. */
-function place(nodes: FanNode[], a0: number, a1: number) {
-  const total = nodes.reduce((s, n) => s + n.need, 0) || 1;
-  let a = a0;
-  for (const n of nodes) {
-    const span = ((a1 - a0) * n.need) / total;
-    n.x0 = a;
-    n.x1 = a + span;
-    place(n.children, n.x0, n.x1);
-    a += span;
-  }
-}
-
-const flatten = (nodes: FanNode[]): FanNode[] => nodes.flatMap((n) => [n, ...flatten(n.children)]);
-
 const label = (p: TreePerson, letter?: string) =>
   `${fullName(p)}${letter ? ` (${letter})` : ""}${nicknames(p) ? ` (${nicknames(p)})` : ""}`;
 
 interface FanChartProps {
-  index: Index;
+  layout: FanLayout;
   root: [TreePerson, TreePerson];
-  branches: TreePerson[];
+  parentsOf: (p: TreePerson) => TreePerson[];
   onSelect: (person: TreePerson) => void;
 }
 
-export default function FanChart({ index, root, branches, onSelect }: FanChartProps) {
+export default function FanChart({ layout, root, parentsOf, onSelect }: FanChartProps) {
+  const { nodes, top, rings, fontAt, rIn, noteOf } = layout;
   const [domingo, pastora] = root;
-  // Ring width depends on how deep the tree goes, so measure depth first.
-  const depthOf = (p: TreePerson): number => 1 + Math.max(0, ...index.childrenOf(p).map(depthOf));
-  const rings = Math.max(1, ...branches.map(depthOf));
-  const ringW = (R_OUT - R_HUB) / rings;
-  const rIn = (depth: number) => R_HUB + (depth - 1) * ringW;
-
-  const top = branches.flatMap((b) => build(index, b, 1, b.id, rIn));
-  place(top, 0, Math.PI);
-  const nodes = flatten(top);
-  const shade = new Map(branches.map((b, i) => [b.id, i % 2 === 0 ? "wedge-a" : "wedge-b"]));
 
   const wedge = arc<{ r0: number; r1: number; a0: number; a1: number }>()
     .innerRadius((d) => d.r0)
@@ -107,6 +36,7 @@ export default function FanChart({ index, root, branches, onSelect }: FanChartPr
     .padAngle(0.0025)
     .padRadius(R_HUB);
   const hub = wedge({ r0: 0, r1: R_HUB - 5, a0: 0, a1: Math.PI });
+  const semicircle = (r: number) => `M ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0`;
   const key = (n: FanNode) => `${n.person.id}-${n.partner?.id ?? ""}-${n.depth}`;
 
   const nameProps = (p: TreePerson) => ({
@@ -115,6 +45,20 @@ export default function FanChart({ index, root, branches, onSelect }: FanChartPr
     onClick: () => onSelect(p),
     onKeyDown: (e: KeyboardEvent) => e.key === "Enter" && onSelect(p),
   });
+  const marks = (p: TreePerson) => (
+    <>
+      {p.deathDate && <tspan className="dead"> †</tspan>}
+      {noteOf.has(p.id) && (
+        <tspan className="note-ref" baselineShift="super" fontSize="65%">
+          {noteOf.get(p.id)}
+        </tspan>
+      )}
+    </>
+  );
+  const lineage = (p: TreePerson, word: string) => {
+    const parents = parentsOf(p);
+    return parents.length ? `${p.firstName}, ${word} of ${parents.map(fullName).join(" and ")}` : "";
+  };
 
   return (
     <svg
@@ -123,23 +67,64 @@ export default function FanChart({ index, root, branches, onSelect }: FanChartPr
       role="img"
       aria-label="Descendants of Domingo Bautista and Pastora Cayabyab, drawn as a fan"
     >
+      <defs>
+        <path id="hub-arc-left" d={`M ${-(R_HUB - 12)} 0 A ${R_HUB - 12} ${R_HUB - 12} 0 0 1 0 ${-(R_HUB - 12)}`} />
+        <path id="hub-arc-right" d={`M 0 ${-(R_HUB - 12)} A ${R_HUB - 12} ${R_HUB - 12} 0 0 1 ${R_HUB - 12} 0`} />
+      </defs>
+
       <g transform={`translate(${CX} ${CY})`}>
         {nodes.map((n) => (
           <path
             key={`w${key(n)}`}
-            className={`wedge ${shade.get(n.branch)}`}
+            className={`wedge ${n.branch % 2 ? "wedge-a" : "wedge-b"}`}
             d={
               wedge({ r0: rIn(n.depth), r1: n.children.length ? rIn(n.depth + 1) : R_OUT, a0: n.x0, a1: n.x1 }) ??
               undefined
             }
           />
         ))}
+        {Array.from({ length: rings - 1 }, (_, i) => (
+          <path key={`ring${i}`} className="ring-line" d={semicircle(rIn(i + 2))} />
+        ))}
         <path className="hub" d={hub ?? undefined} />
         {RING_NAMES.slice(0, rings).map((name, i) => (
-          <text key={name} className="ring-name" x={-rIn(i + 1) + 3} y={-3} fontSize={4}>
-            {name}
-          </text>
+          <g key={name}>
+            <line className="ring-tick" x1={-rIn(i + 1)} x2={-rIn(i + 1)} y1={0} y2={7.5} />
+            <text className="ring-name" x={-rIn(i + 1) - 2} y={6.8} fontSize={4.4} textAnchor="end">
+              {name}
+            </text>
+          </g>
         ))}
+        {[...new Set(top.map((n) => n.branch))].map((branch) => {
+          const span = top.filter((n) => n.branch === branch);
+          const a = (span[0].x0 + span[span.length - 1].x1) / 2;
+          const r = R_OUT + 4;
+          return (
+            <text
+              key={`b${branch}`}
+              className="branch-numeral"
+              x={-r * Math.cos(a)}
+              y={-r * Math.sin(a)}
+              fontSize={16}
+              textAnchor={a < Math.PI / 2 - 0.05 ? "end" : a > Math.PI / 2 + 0.05 ? "start" : "middle"}
+              dominantBaseline={a > 1.2 && a < 1.94 ? "auto" : "middle"}
+            >
+              {branch}
+            </text>
+          );
+        })}
+        <g className="hub-arc" fontSize={3.2}>
+          <text>
+            <textPath href="#hub-arc-left" startOffset="10%">
+              {lineage(domingo, "son")}
+            </textPath>
+          </text>
+          <text>
+            <textPath href="#hub-arc-right" startOffset="6%">
+              {lineage(pastora, "daughter")}
+            </textPath>
+          </text>
+        </g>
       </g>
 
       <g className="fan-labels">
@@ -155,17 +140,17 @@ export default function FanChart({ index, root, branches, onSelect }: FanChartPr
               key={`l${key(n)}`}
               className="fan-node"
               transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${deg.toFixed(2)})`}
-              fontSize={fontAt(n.depth)}
+              fontSize={fontAt(n.depth).toFixed(2)}
               textAnchor={left ? "end" : "start"}
             >
-              <text className="fan-name" dy={n.partner ? "-0.2em" : "0.35em"} {...nameProps(n.person)}>
+              <text className="fan-name" dy={n.partner ? "-0.18em" : "0.35em"} {...nameProps(n.person)}>
                 {label(n.person, n.letter)}
-                {n.person.deathDate && <tspan className="dead"> †</tspan>}
+                {marks(n.person)}
               </text>
               {n.partner && (
-                <text className="fan-name fan-partner" dy="0.95em" {...nameProps(n.partner)}>
+                <text className="fan-name fan-partner" dy="0.92em" {...nameProps(n.partner)}>
                   {n.mark} {label(n.partner)}
-                  {n.partner.deathDate && <tspan className="dead"> †</tspan>}
+                  {marks(n.partner)}
                 </text>
               )}
             </g>
@@ -174,14 +159,18 @@ export default function FanChart({ index, root, branches, onSelect }: FanChartPr
       </g>
 
       <g className="fan-root" transform={`translate(${CX} ${CY})`} textAnchor="middle">
-        <text className="fan-name" y={-38} fontSize={FONT_BY_DEPTH[0]} {...nameProps(domingo)}>
+        <text className="fan-name" y={-42} fontSize={fontAt(0)} {...nameProps(domingo)}>
           {fullName(domingo)}
         </text>
-        <text className="fan-name" y={-24} fontSize={FONT_BY_DEPTH[0]} {...nameProps(pastora)}>
+        <text className="fan-name" y={-28} fontSize={fontAt(0)} {...nameProps(pastora)}>
           × {fullName(pastora)}
         </text>
-        <text y={-11} fontSize={3.4} className="fan-root-note">
-          {branches.length} children · {nodes.filter((n) => !n.children.length).length} lines fan out above
+        <text y={-16} fontSize={3.4} className="fan-root-note">
+          {new Set(top.map((n) => n.branch)).size} children · {nodes.filter((n) => !n.children.length).length} lines fan
+          out above
+        </text>
+        <text y={-7} fontSize={3} className="fan-root-quote">
+          “If you don't recount your family history, it might be lost.” Madeleine L'Engle
         </text>
       </g>
     </svg>

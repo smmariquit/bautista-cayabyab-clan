@@ -14,6 +14,7 @@ const person = (id: string, over: Partial<TreePerson> = {}): TreePerson => ({
   generation: 0,
   lineageCode: id,
   occupation: null,
+  education: null,
   bio: null,
   photoUrl: null,
   birthDate: null,

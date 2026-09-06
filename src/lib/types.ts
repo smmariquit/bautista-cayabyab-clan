@@ -10,6 +10,7 @@ export interface TreePerson {
   generation: number;
   lineageCode: string | null;
   occupation: string | null;
+  education: string | null;
   bio: string | null;
   photoUrl: string | null;
   birthDate: string | null;
